@@ -7,7 +7,7 @@ import { cn } from '@/lib/utils'
 export function CalendarPage() {
   const tasks = useTasksStore((s) => s.tasks)
 
-  const today = new Date()
+  const today =  useMemo(() => new Date(), [])
   const monthLabel = today.toLocaleDateString(undefined, { month: 'long', year: 'numeric' })
 
   const cells = useMemo(() => {

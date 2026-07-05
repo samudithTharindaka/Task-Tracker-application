@@ -15,7 +15,7 @@ function authenticate(req, res, next) {
     const payload = jwt.verify(token, env.jwtAccessSecret);
     req.user = { id: payload.sub, role: payload.role };
     next();
-  } catch (err) {
+  } catch {
     next(new ApiError(401, 'UNAUTHENTICATED', 'Invalid or expired access token'));
   }
 }

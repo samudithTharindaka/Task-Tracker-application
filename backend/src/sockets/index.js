@@ -20,7 +20,7 @@ function initSockets(httpServer) {
       const payload = jwt.verify(token, env.jwtAccessSecret);
       socket.data.user = { id: payload.sub, role: payload.role };
       next();
-    } catch (err) {
+    } catch  {
       next(new Error('Invalid or expired token'));
     }
   });
