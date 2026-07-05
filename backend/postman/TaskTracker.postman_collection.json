@@ -2,7 +2,7 @@
   "info": {
     "_postman_id": "6eb03ca2-2c05-4b9d-bd82-ca275b0d0d7d",
     "name": "Task Tracker API",
-    "description": "REST API for the Task Tracker application. Import the companion 'Task Tracker - Local' environment before running.\n\nSuggested run order: Auth > Login as Alice, then any Tasks request. Switch to Auth > Login as Admin to test cross-user visibility.",
+    "description": "REST API for the Task Tracker application. Import the companion 'Task Tracker - Local' environment before running.\n\nRun the folders top to bottom (Collection Runner respects this order): Auth > Projects > Tasks > Error Scenarios > Cleanup > Health Check. Projects > Create Project stores {{projectId}}, which Tasks and Error Scenarios both depend on — Cleanup > Delete Project is deliberately last since it cascades and deletes that project's tasks too. Switch to Auth > Login as Admin to test cross-user visibility.",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "auth": {
@@ -55,7 +55,7 @@
               "raw": "{\n  \"email\": \"{{userEmail}}\",\n  \"password\": \"{{userPassword}}\"\n}"
             },
             "url": { "raw": "{{baseUrl}}/auth/login", "host": ["{{baseUrl}}"], "path": ["auth", "login"] },
-            "description": "Logs in as the seeded regular user and stores accessToken/refreshToken/userId in the environment for the Tasks folder to use."
+            "description": "Logs in as the seeded regular user and stores accessToken/refreshToken/userId in the environment for the Projects/Tasks folders to use."
           },
           "event": [
             {
@@ -87,7 +87,7 @@
               "raw": "{\n  \"email\": \"{{adminEmail}}\",\n  \"password\": \"{{adminPassword}}\"\n}"
             },
             "url": { "raw": "{{baseUrl}}/auth/login", "host": ["{{baseUrl}}"], "path": ["auth", "login"] },
-            "description": "Run instead of 'Login as Alice' to test admin-only cross-user visibility. Overwrites {{accessToken}} used by the Tasks folder, and also stores it separately in {{adminAccessToken}}."
+            "description": "Run instead of 'Login as Alice' to test admin-only cross-user visibility. Overwrites {{accessToken}} used by the Projects/Tasks folders, and also stores it separately in {{adminAccessToken}}."
           },
           "event": [
             {
@@ -142,6 +142,116 @@
       ]
     },
     {
+      "name": "Projects",
+      "item": [
+        {
+          "name": "List Projects",
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{baseUrl}}/projects", "host": ["{{baseUrl}}"], "path": ["projects"] },
+            "description": "USER role only ever sees their own projects; ADMIN sees all."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 200', function () {",
+                  "  pm.response.to.have.status(200);",
+                  "});",
+                  "pm.test('Response has a value array', function () {",
+                  "  pm.expect(pm.response.json().value).to.be.an('array');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Create Project",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"My Board\"\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/projects", "host": ["{{baseUrl}}"], "path": ["projects"] },
+            "description": "ownerId is always set server-side to the authenticated user. Stores the new project's id in {{projectId}} for the Tasks folder to use."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 201', function () {",
+                  "  pm.response.to.have.status(201);",
+                  "});",
+                  "{",
+                  "  const data = pm.response.json();",
+                  "  pm.environment.set('projectId', data.id);",
+                  "}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Get Project by Id",
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{baseUrl}}/projects/{{projectId}}", "host": ["{{baseUrl}}"], "path": ["projects", "{{projectId}}"] }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 200', function () {",
+                  "  pm.response.to.have.status(200);",
+                  "});",
+                  "pm.test('Returned project matches projectId', function () {",
+                  "  pm.expect(pm.response.json().id).to.eql(pm.environment.get('projectId'));",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Update Project (Rename)",
+          "request": {
+            "method": "PUT",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"My Board (renamed)\"\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/projects/{{projectId}}", "host": ["{{baseUrl}}"], "path": ["projects", "{{projectId}}"] }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 200', function () {",
+                  "  pm.response.to.have.status(200);",
+                  "});",
+                  "pm.test('Name was updated', function () {",
+                  "  pm.expect(pm.response.json().name).to.eql('My Board (renamed)');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
       "name": "Tasks",
       "item": [
         {
@@ -188,7 +298,8 @@
               "host": ["{{baseUrl}}"],
               "path": ["tasks"],
               "query": [{ "key": "$filter", "value": "status eq 'DONE'" }]
-            }
+            },
+            "description": "Valid status values: TODO, IN_PROGRESS, TEST, DONE."
           },
           "event": [
             {
@@ -209,16 +320,46 @@
           ]
         },
         {
+          "name": "List Tasks - Filter by Project",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/tasks?$filter=projectId eq '{{projectId}}'",
+              "host": ["{{baseUrl}}"],
+              "path": ["tasks"],
+              "query": [{ "key": "$filter", "value": "projectId eq '{{projectId}}'" }]
+            },
+            "description": "Scopes the task list to a single project — this is how the frontend loads a board/list view."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 200', function () {",
+                  "  pm.response.to.have.status(200);",
+                  "});",
+                  "pm.test('All returned tasks belong to projectId', function () {",
+                  "  const data = pm.response.json();",
+                  "  data.value.forEach((task) => pm.expect(task.projectId).to.eql(pm.environment.get('projectId')));",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
           "name": "Create Task",
           "request": {
             "method": "POST",
             "header": [{ "key": "Content-Type", "value": "application/json" }],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"title\": \"Buy groceries\",\n  \"description\": \"Milk, eggs, bread\",\n  \"status\": \"PENDING\",\n  \"dueDate\": \"2026-12-31T00:00:00.000Z\"\n}"
+              "raw": "{\n  \"title\": \"Buy groceries\",\n  \"description\": \"Milk, eggs, bread\",\n  \"status\": \"TODO\",\n  \"dueDate\": \"2026-12-31T00:00:00.000Z\",\n  \"projectId\": \"{{projectId}}\"\n}"
             },
             "url": { "raw": "{{baseUrl}}/tasks", "host": ["{{baseUrl}}"], "path": ["tasks"] },
-            "description": "ownerId is always set server-side to the authenticated user, regardless of what you send in the body."
+            "description": "ownerId is always set server-side to the authenticated user, regardless of what you send in the body. projectId is required and must be a project you own (run Projects > Create Project first)."
           },
           "event": [
             {
@@ -268,9 +409,10 @@
             "header": [{ "key": "Content-Type", "value": "application/json" }],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"status\": \"IN_PROGRESS\"\n}"
+              "raw": "{\n  \"status\": \"TEST\"\n}"
             },
-            "url": { "raw": "{{baseUrl}}/tasks/{{taskId}}", "host": ["{{baseUrl}}"], "path": ["tasks", "{{taskId}}"] }
+            "url": { "raw": "{{baseUrl}}/tasks/{{taskId}}", "host": ["{{baseUrl}}"], "path": ["tasks", "{{taskId}}"] },
+            "description": "Valid status values: TODO, IN_PROGRESS, TEST, DONE. A task can also be moved to a different project you own by sending projectId."
           },
           "event": [
             {
@@ -282,7 +424,7 @@
                   "  pm.response.to.have.status(200);",
                   "});",
                   "pm.test('Status was updated', function () {",
-                  "  pm.expect(pm.response.json().status).to.eql('IN_PROGRESS');",
+                  "  pm.expect(pm.response.json().status).to.eql('TEST');",
                   "});"
                 ]
               }
@@ -380,6 +522,84 @@
                 "exec": [
                   "pm.test('Status code is 404', function () {",
                   "  pm.response.to.have.status(404);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Create Task - Unknown Project (404)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Should fail\",\n  \"dueDate\": \"2026-12-31T00:00:00.000Z\",\n  \"projectId\": \"00000000-0000-0000-0000-000000000000\"\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/tasks", "host": ["{{baseUrl}}"], "path": ["tasks"] },
+            "description": "Demonstrates that a task can't be filed under a project you don't own (or that doesn't exist)."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 404', function () {",
+                  "  pm.response.to.have.status(404);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Create Task - Invalid Status (400)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Should fail\",\n  \"status\": \"PENDING\",\n  \"dueDate\": \"2026-12-31T00:00:00.000Z\",\n  \"projectId\": \"{{projectId}}\"\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/tasks", "host": ["{{baseUrl}}"], "path": ["tasks"] },
+            "description": "PENDING was removed from the TaskStatus enum (replaced by TODO); this now fails validation."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 400', function () {",
+                  "  pm.response.to.have.status(400);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Cleanup",
+      "item": [
+        {
+          "name": "Delete Project",
+          "request": {
+            "method": "DELETE",
+            "url": { "raw": "{{baseUrl}}/projects/{{projectId}}", "host": ["{{baseUrl}}"], "path": ["projects", "{{projectId}}"] },
+            "description": "Cascades: deletes every task under this project too. Placed last (after Tasks and Error Scenarios) since both of those folders depend on {{projectId}}."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 204', function () {",
+                  "  pm.response.to.have.status(204);",
                   "});"
                 ]
               }

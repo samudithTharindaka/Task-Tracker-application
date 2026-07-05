@@ -11,7 +11,10 @@
     "prisma:generate": "prisma generate",
     "prisma:studio": "prisma studio",
     "seed": "node prisma/seed.js",
-    "lint": "eslint ."
+    "lint": "eslint .",
+    "test": "jest",
+    "test:watch": "jest --watch",
+    "test:coverage": "jest --coverage"
   },
   "prisma": {
     "seed": "node prisma/seed.js"
@@ -30,7 +33,10 @@
   "devDependencies": {
     "@eslint/js": "^10.0.1",
     "eslint": "^10.6.0",
-    "prisma": "^5.20.0"
+    "jest": "^30.4.2",
+    "jest-mock-extended": "^4.0.1",
+    "prisma": "^5.20.0",
+    "supertest": "^7.2.2"
   },
   "allowScripts": {
     "@prisma/client@5.22.0": true,
