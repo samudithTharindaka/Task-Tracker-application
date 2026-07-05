@@ -62,7 +62,7 @@ async function refresh({ refreshToken }) {
 
   try {
     payload = jwt.verify(refreshToken, env.jwtRefreshSecret);
-  } catch (err) {
+  } catch {
     throw new ApiError(401, 'UNAUTHENTICATED', 'Invalid or expired refresh token');
   }
 
