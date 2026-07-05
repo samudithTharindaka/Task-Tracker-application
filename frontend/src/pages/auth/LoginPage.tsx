@@ -1,12 +1,12 @@
 import { type FormEvent, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { LockIcon, UserIcon } from 'lucide-react'
-import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Logo } from '@/components/Logo'
 import { loginRequest } from '@/lib/api/auth'
 import { getApiErrorMessage } from '@/lib/api/client'
+import { notifyError, notifySuccess } from '@/lib/toast'
 import { useAuthStore } from '@/store/authStore'
 
 export function LoginPage() {
@@ -22,9 +22,10 @@ export function LoginPage() {
     try {
       const session = await loginRequest(email, password)
       setSession(session)
+      notifySuccess('Logged in', `Welcome back, ${session.user.email}`)
       navigate('/app/board')
     } catch (error) {
-      toast.error(getApiErrorMessage(error, 'Invalid email or password'))
+      notifyError('Login failed', getApiErrorMessage(error, 'Invalid email or password'))
     } finally {
       setIsSubmitting(false)
     }

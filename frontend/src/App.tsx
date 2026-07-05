@@ -4,6 +4,7 @@ import { ProtectedRoute } from '@/routes/ProtectedRoute'
 import { AppShell } from '@/layout/AppShell'
 import { LoginPage } from '@/pages/auth/LoginPage'
 import { SignupPage } from '@/pages/auth/SignupPage'
+import { HomePage } from '@/pages/home/HomePage'
 import { BoardPage } from '@/pages/board/BoardPage'
 import { ListPage } from '@/pages/list/ListPage'
 import { CalendarPage } from '@/pages/calendar/CalendarPage'
@@ -24,7 +25,7 @@ export function App() {
             <Route path="/app/calendar" element={<CalendarPage />} />
             <Route path="/app/ai-assistant" element={<AiAssistantPage />} />
             <Route path="/app/profile" element={<ProfilePage />} />
-            <Route path="/app/home" element={<Navigate to="/app/board" replace />} />
+            <Route path="/app/home" element={<HomePage />} />
             <Route path="/app/tasks" element={<Navigate to="/app/list" replace />} />
             <Route path="/app" element={<Navigate to="/app/board" replace />} />
           </Route>
@@ -33,7 +34,7 @@ export function App() {
         <Route path="/" element={<Navigate to="/app/board" replace />} />
         <Route path="*" element={<Navigate to="/app/board" replace />} />
       </Routes>
-      <Toaster position="top-right" />
+      <Toaster position="bottom-right" />
     </>
   )
 }

@@ -1,9 +1,11 @@
-import { useMemo, useState } from 'react'
-import { ChevronDownIcon, ClockIcon, InfoIcon, Trash2Icon, UserIcon } from 'lucide-react'
+import { useEffect, useMemo, useState } from 'react'
+import { format } from 'date-fns'
+import { ChevronDownIcon, ClockIcon, InfoIcon, TagIcon, Trash2Icon } from 'lucide-react'
 import { BoardPageHeader } from '@/components/tasks/BoardPageHeader'
 import { AddTaskDialog } from '@/components/tasks/AddTaskDialog'
 import { TaskDetailSheet } from '@/components/tasks/TaskDetailSheet'
-import { StatusDot } from '@/components/tasks/StatusBadge'
+import { LabelBadge } from '@/components/tasks/LabelBadge'
+import { StatusBadge } from '@/components/tasks/StatusBadge'
 import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
@@ -14,33 +16,56 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
-import { useTasksStore } from '@/lib/mock/tasksStore'
-import type { Assignee } from '@/types/task'
+import { useTasksStore } from '@/store/tasksStore'
+import { useProjectsStore } from '@/store/projectsStore'
+import { useAuthStore } from '@/store/authStore'
+import { useTaskExtrasStore } from '@/lib/mock/taskExtrasStore'
+import { getApiErrorMessage } from '@/lib/api/client'
+import { confirmAction, notifyError, notifySuccess } from '@/lib/toast'
+import { BOARD_COLUMNS, TASK_LABELS, type Task, type TaskLabel, type TaskStatus } from '@/types/task'
 
 const PAGE_SIZE = 8
-const STATUS_OPTIONS: Assignee['status'][] = ['Active', 'Offline', 'Wait']
 
 export function ListPage() {
   const tasks = useTasksStore((s) => s.tasks)
   const deleteTask = useTasksStore((s) => s.deleteTask)
+  const fetchTasks = useTasksStore((s) => s.fetchTasks)
+  const currentProjectId = useProjectsStore((s) => s.currentProjectId)
+  const currentUser = useAuthStore((s) => s.user)
+  const getExtras = useTaskExtrasStore((s) => s.getExtras)
+  const removeExtras = useTaskExtrasStore((s) => s.removeExtras)
+
   const [activeTaskId, setActiveTaskId] = useState<string | null>(null)
-  const [statusFilter, setStatusFilter] = useState<Assignee['status'] | null>(null)
-  const [authorFilter, setAuthorFilter] = useState<string | null>(null)
+  const [statusFilter, setStatusFilter] = useState<TaskStatus | null>(null)
+  const [labelFilter, setLabelFilter] = useState<TaskLabel | null>(null)
   const [selected, setSelected] = useState<Set<string>>(new Set())
   const [page, setPage] = useState(1)
 
+  useEffect(() => {
+    if (currentProjectId) {
+      fetchTasks(currentProjectId).catch((error) => notifyError('Could not load tasks', getApiErrorMessage(error)))
+    }
+  }, [currentProjectId, fetchTasks])
+
   const activeTask = tasks.find((t) => t.id === activeTaskId) ?? null
 
-  const authors = useMemo(() => Array.from(new Set(tasks.map((t) => t.assignee.name))), [tasks])
+  // The backend always sets ownerId to whoever created the task (and never
+  // lets it change), and USER-role task listings are always server-scoped to
+  // the caller's own tasks — so a visible task's owner is the current user
+  // unless we're an admin looking at someone else's (falls back to the
+  // decorative mock identity in that rare case).
+  function ownerDisplayName(task: Task): string {
+    if (task.ownerId === currentUser?.id) return currentUser?.email ?? 'You'
+    return getExtras(task.id).assignee.name
+  }
 
   const filtered = useMemo(
     () =>
-      tasks.filter(
-        (t) =>
-          (!statusFilter || t.assignee.status === statusFilter) &&
-          (!authorFilter || t.assignee.name === authorFilter),
-      ),
-    [tasks, statusFilter, authorFilter],
+      tasks.filter((t) => {
+        const label = getExtras(t.id).label
+        return (!statusFilter || t.status === statusFilter) && (!labelFilter || label === labelFilter)
+      }),
+    [tasks, statusFilter, labelFilter, getExtras],
   )
 
   const pageCount = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE))
@@ -59,6 +84,21 @@ export function ListPage() {
     setSelected((prev) => (prev.size === paged.length ? new Set() : new Set(paged.map((t) => t.id))))
   }
 
+  function handleDelete(id: string, title: string) {
+    confirmAction({
+      description: `Delete "${title}"? This can't be undone.`,
+      onConfirm: async () => {
+        try {
+          await deleteTask(id)
+          removeExtras(id)
+          notifySuccess('Task deleted')
+        } catch (error) {
+          notifyError('Could not delete task', getApiErrorMessage(error))
+        }
+      },
+    })
+  }
+
   return (
     <div className="p-6">
       <BoardPageHeader crumb="Board" />
@@ -67,14 +107,14 @@ export function ListPage() {
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button variant="outline" className="rounded-full">
-              <UserIcon /> {authorFilter ?? 'Author'} <ChevronDownIcon className="size-3.5" />
+              <TagIcon /> {labelFilter ?? 'Label'} <ChevronDownIcon className="size-3.5" />
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent>
-            <DropdownMenuItem onClick={() => setAuthorFilter(null)}>All authors</DropdownMenuItem>
-            {authors.map((a) => (
-              <DropdownMenuItem key={a} onClick={() => setAuthorFilter(a)}>
-                {a}
+            <DropdownMenuItem onClick={() => setLabelFilter(null)}>All labels</DropdownMenuItem>
+            {TASK_LABELS.map((l) => (
+              <DropdownMenuItem key={l.id} onClick={() => setLabelFilter(l.id)}>
+                {l.id}
               </DropdownMenuItem>
             ))}
           </DropdownMenuContent>
@@ -87,14 +127,15 @@ export function ListPage() {
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button variant="outline" className="rounded-full">
-              <UserIcon /> {statusFilter ?? 'Status'} <ChevronDownIcon className="size-3.5" />
+              {statusFilter ? BOARD_COLUMNS.find((c) => c.id === statusFilter)?.label : 'Status'}{' '}
+              <ChevronDownIcon className="size-3.5" />
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent>
             <DropdownMenuItem onClick={() => setStatusFilter(null)}>All statuses</DropdownMenuItem>
-            {STATUS_OPTIONS.map((s) => (
-              <DropdownMenuItem key={s} onClick={() => setStatusFilter(s)}>
-                {s}
+            {BOARD_COLUMNS.map((c) => (
+              <DropdownMenuItem key={c.id} onClick={() => setStatusFilter(c.id)}>
+                {c.label}
               </DropdownMenuItem>
             ))}
           </DropdownMenuContent>
@@ -109,54 +150,56 @@ export function ListPage() {
                 <Checkbox checked={selected.size > 0 && selected.size === paged.length} onCheckedChange={toggleSelectAll} />
               </TableHead>
               <TableHead>Task</TableHead>
+              <TableHead>Label</TableHead>
               <TableHead>Status</TableHead>
-              <TableHead>Description</TableHead>
+              <TableHead>User</TableHead>
               <TableHead>Date</TableHead>
               <TableHead className="w-20" />
             </TableRow>
           </TableHeader>
           <TableBody>
-            {paged.map((task) => (
-              <TableRow key={task.id} className="cursor-pointer" onClick={() => setActiveTaskId(task.id)}>
-                <TableCell onClick={(e) => e.stopPropagation()}>
-                  <Checkbox checked={selected.has(task.id)} onCheckedChange={() => toggleSelected(task.id)} />
-                </TableCell>
-                <TableCell>
-                  <div className="flex items-center gap-3">
-                    <Avatar>
-                      <AvatarFallback style={{ backgroundColor: task.assignee.avatarColor }} className="text-white">
-                        {task.assignee.name
-                          .split(' ')
-                          .map((p) => p[0])
-                          .join('')}
-                      </AvatarFallback>
-                    </Avatar>
-                    <div>
-                      <p className="font-medium">{task.assignee.name}</p>
-                      <p className="text-xs text-muted-foreground">{task.assignee.handle}</p>
+            {paged.map((task) => {
+              const extras = getExtras(task.id)
+              const ownerName = ownerDisplayName(task)
+              return (
+                <TableRow key={task.id} className="cursor-pointer" onClick={() => setActiveTaskId(task.id)}>
+                  <TableCell onClick={(e) => e.stopPropagation()}>
+                    <Checkbox checked={selected.has(task.id)} onCheckedChange={() => toggleSelected(task.id)} />
+                  </TableCell>
+                  <TableCell className="max-w-xs">
+                    <p className="truncate font-medium">{task.title}</p>
+                    <p className="truncate text-xs text-muted-foreground">{task.description || 'No description'}</p>
+                  </TableCell>
+                  <TableCell>
+                    <LabelBadge label={extras.label} />
+                  </TableCell>
+                  <TableCell>
+                    <StatusBadge status={task.status} />
+                  </TableCell>
+                  <TableCell>
+                    <div className="flex items-center gap-2">
+                      <Avatar className="size-7">
+                        <AvatarFallback className="bg-primary/10 text-xs text-primary">
+                          {ownerName.slice(0, 2).toUpperCase()}
+                        </AvatarFallback>
+                      </Avatar>
+                      <span className="truncate text-muted-foreground">{ownerName}</span>
                     </div>
-                  </div>
-                </TableCell>
-                <TableCell>
-                  <span className="flex items-center gap-1.5">
-                    <StatusDot status={task.assignee.status} />
-                    {task.assignee.status}
-                  </span>
-                </TableCell>
-                <TableCell className="text-muted-foreground">{task.assignee.email}</TableCell>
-                <TableCell className="text-muted-foreground">{task.dueDate ?? '—'}</TableCell>
-                <TableCell onClick={(e) => e.stopPropagation()}>
-                  <div className="flex items-center gap-2">
-                    <Button variant="ghost" size="icon" onClick={() => setActiveTaskId(task.id)} aria-label="View task">
-                      <InfoIcon className="size-4" />
-                    </Button>
-                    <Button variant="ghost" size="icon" onClick={() => deleteTask(task.id)} aria-label="Delete task">
-                      <Trash2Icon className="size-4 text-destructive" />
-                    </Button>
-                  </div>
-                </TableCell>
-              </TableRow>
-            ))}
+                  </TableCell>
+                  <TableCell className="text-muted-foreground">{format(new Date(task.dueDate), 'MMM d, yyyy')}</TableCell>
+                  <TableCell onClick={(e) => e.stopPropagation()}>
+                    <div className="flex items-center gap-2">
+                      <Button variant="ghost" size="icon" onClick={() => setActiveTaskId(task.id)} aria-label="View task">
+                        <InfoIcon className="size-4" />
+                      </Button>
+                      <Button variant="ghost" size="icon" onClick={() => handleDelete(task.id, task.title)} aria-label="Delete task">
+                        <Trash2Icon className="size-4 text-destructive" />
+                      </Button>
+                    </div>
+                  </TableCell>
+                </TableRow>
+              )
+            })}
           </TableBody>
         </Table>
       </div>

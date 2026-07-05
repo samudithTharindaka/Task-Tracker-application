@@ -13,8 +13,9 @@ enum Role {
 }
 
 enum TaskStatus {
-  PENDING
+  TODO
   IN_PROGRESS
+  TEST
   DONE
 }
 
@@ -25,6 +26,17 @@ model User {
   role      Role     @default(USER)
   createdAt DateTime @default(now())
 
+  tasks    Task[]
+  projects Project[]
+}
+
+model Project {
+  id        String   @id @default(uuid())
+  name      String
+  ownerId   String
+  owner     User     @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+
   tasks Task[]
 }
 
@@ -32,10 +44,12 @@ model Task {
   id          String     @id @default(uuid())
   title       String
   description String?
-  status      TaskStatus @default(PENDING)
+  status      TaskStatus @default(TODO)
   dueDate     DateTime
   ownerId     String
   owner       User       @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  projectId   String
+  project     Project    @relation(fields: [projectId], references: [id], onDelete: Cascade)
   createdAt   DateTime   @default(now())
   updatedAt   DateTime   @updatedAt
 }

@@ -40,6 +40,24 @@ async function main() {
 
   const daysFromNow = (n) => new Date(Date.now() + n * 24 * 60 * 60 * 1000);
 
+  const aliceProject = await prisma.project.upsert({
+    where: { id: '00000000-0000-0000-0000-000000000001' },
+    update: {},
+    create: { id: '00000000-0000-0000-0000-000000000001', name: 'My Board', ownerId: alice.id },
+  });
+
+  const bobProject = await prisma.project.upsert({
+    where: { id: '00000000-0000-0000-0000-000000000002' },
+    update: {},
+    create: { id: '00000000-0000-0000-0000-000000000002', name: 'My Board', ownerId: bob.id },
+  });
+
+  const adminProject = await prisma.project.upsert({
+    where: { id: '00000000-0000-0000-0000-000000000003' },
+    update: {},
+    create: { id: '00000000-0000-0000-0000-000000000003', name: 'My Board', ownerId: admin.id },
+  });
+
   await prisma.task.createMany({
     data: [
       {
@@ -48,6 +66,7 @@ async function main() {
         status: 'DONE',
         dueDate: daysFromNow(-3),
         ownerId: alice.id,
+        projectId: aliceProject.id,
       },
       {
         title: 'Design database schema',
@@ -55,6 +74,7 @@ async function main() {
         status: 'DONE',
         dueDate: daysFromNow(-1),
         ownerId: alice.id,
+        projectId: aliceProject.id,
       },
       {
         title: 'Implement auth endpoints',
@@ -62,20 +82,23 @@ async function main() {
         status: 'IN_PROGRESS',
         dueDate: daysFromNow(2),
         ownerId: alice.id,
+        projectId: aliceProject.id,
       },
       {
         title: 'Write task CRUD API',
         description: null,
-        status: 'PENDING',
+        status: 'TODO',
         dueDate: daysFromNow(5),
         ownerId: bob.id,
+        projectId: bobProject.id,
       },
       {
         title: 'Add real-time notifications',
         description: 'Socket.io integration for task events',
-        status: 'PENDING',
+        status: 'TODO',
         dueDate: daysFromNow(7),
         ownerId: bob.id,
+        projectId: bobProject.id,
       },
       {
         title: 'Review pull requests',
@@ -83,6 +106,7 @@ async function main() {
         status: 'IN_PROGRESS',
         dueDate: daysFromNow(1),
         ownerId: admin.id,
+        projectId: adminProject.id,
       },
     ],
   });

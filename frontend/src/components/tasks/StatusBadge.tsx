@@ -1,12 +1,18 @@
 import { cn } from '@/lib/utils'
-import type { Assignee } from '@/types/task'
+import { STATUS_BADGE_STYLES, type TaskStatus } from '@/types/task'
 
-const STATUS_STYLES: Record<Assignee['status'], string> = {
-  Active: 'bg-success',
-  Offline: 'bg-muted-foreground',
-  Wait: 'bg-warning',
-}
+export function StatusBadge({ status, className }: { status: TaskStatus; className?: string }) {
+  const style = STATUS_BADGE_STYLES[status]
 
-export function StatusDot({ status, className }: { status: Assignee['status']; className?: string }) {
-  return <span className={cn('inline-block size-2 rounded-full', STATUS_STYLES[status], className)} />
+  return (
+    <span
+      className={cn(
+        'inline-flex w-fit items-center rounded-full px-2.5 py-0.5 text-xs font-bold tracking-wide whitespace-nowrap',
+        style.className,
+        className,
+      )}
+    >
+      {style.label}
+    </span>
+  )
 }

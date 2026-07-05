@@ -1,6 +1,7 @@
 import { useMemo } from 'react'
+import { addDays, isSameDay } from 'date-fns'
 import { BoardPageHeader } from '@/components/tasks/BoardPageHeader'
-import { useTasksStore } from '@/lib/mock/tasksStore'
+import { useTasksStore } from '@/store/tasksStore'
 import { cn } from '@/lib/utils'
 
 export function CalendarPage() {
@@ -20,7 +21,8 @@ export function CalendarPage() {
     })
   }, [today])
 
-  const dueTodayCount = tasks.filter((t) => t.dueDate === 'Tomorrow').length
+  const tomorrow = addDays(today, 1)
+  const dueTodayCount = tasks.filter((t) => isSameDay(new Date(t.dueDate), tomorrow)).length
 
   return (
     <div className="p-6">
