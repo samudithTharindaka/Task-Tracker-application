@@ -2,13 +2,14 @@ import { useDroppable } from '@dnd-kit/core'
 import { MoreHorizontalIcon } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { TaskCard } from '@/components/tasks/TaskCard'
-import type { BoardColumn, MockTask } from '@/types/task'
+import { useTaskExtrasStore } from '@/lib/mock/taskExtrasStore'
+import type { Task, TaskStatus } from '@/types/task'
 
-const COLUMN_ACCENT: Record<BoardColumn, string> = {
+const COLUMN_ACCENT: Record<TaskStatus, string> = {
   TODO: 'border-foreground',
-  IN_WORK: 'border-primary',
-  QA: 'border-warning',
-  COMPLETED: 'border-success',
+  IN_PROGRESS: 'border-primary',
+  TEST: 'border-warning',
+  DONE: 'border-success',
 }
 
 export function KanbanColumn({
@@ -17,12 +18,13 @@ export function KanbanColumn({
   tasks,
   onTaskClick,
 }: {
-  id: BoardColumn
+  id: TaskStatus
   label: string
-  tasks: MockTask[]
-  onTaskClick: (task: MockTask) => void
+  tasks: Task[]
+  onTaskClick: (task: Task) => void
 }) {
   const { setNodeRef, isOver } = useDroppable({ id })
+  const getExtras = useTaskExtrasStore((s) => s.getExtras)
 
   return (
     <div className="flex w-72 shrink-0 flex-col">
@@ -46,7 +48,7 @@ export function KanbanColumn({
         )}
       >
         {tasks.map((task) => (
-          <TaskCard key={task.id} task={task} onClick={() => onTaskClick(task)} />
+          <TaskCard key={task.id} task={task} extras={getExtras(task.id)} onClick={() => onTaskClick(task)} />
         ))}
       </div>
     </div>

@@ -4,6 +4,7 @@ import { cn } from '@/lib/utils'
 import { Input } from '@/components/ui/input'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
+import { notifySuccess } from '@/lib/toast'
 import { useAuthStore } from '@/store/authStore'
 
 const VIEW_TABS = [
@@ -19,6 +20,7 @@ export function Topbar() {
 
   function handleLogout() {
     logout()
+    notifySuccess('Logged out')
     navigate('/login')
   }
 

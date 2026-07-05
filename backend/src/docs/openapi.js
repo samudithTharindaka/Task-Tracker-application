@@ -24,6 +24,7 @@ const openapiSpec = {
   tags: [
     { name: 'Auth', description: 'Registration, login, and token refresh' },
     { name: 'Tasks', description: 'Task CRUD and OData-style listing' },
+    { name: 'Projects', description: 'Project listing and creation' },
   ],
   components: {
     securitySchemes: {
@@ -62,11 +63,37 @@ const openapiSpec = {
           id: { type: 'string', format: 'uuid' },
           title: { type: 'string' },
           description: { type: 'string', nullable: true },
-          status: { type: 'string', enum: ['PENDING', 'IN_PROGRESS', 'DONE'] },
+          status: { type: 'string', enum: ['TODO', 'IN_PROGRESS', 'TEST', 'DONE'] },
           dueDate: { type: 'string', format: 'date-time' },
           ownerId: { type: 'string', format: 'uuid' },
+          projectId: { type: 'string', format: 'uuid' },
           createdAt: { type: 'string', format: 'date-time' },
           updatedAt: { type: 'string', format: 'date-time' },
+        },
+      },
+      Project: {
+        type: 'object',
+        properties: {
+          id: { type: 'string', format: 'uuid' },
+          name: { type: 'string' },
+          ownerId: { type: 'string', format: 'uuid' },
+          createdAt: { type: 'string', format: 'date-time' },
+        },
+      },
+      ProjectCreateRequest: {
+        type: 'object',
+        required: ['name'],
+        properties: {
+          name: { type: 'string', example: 'My Board' },
+        },
+      },
+      ProjectListResponse: {
+        type: 'object',
+        properties: {
+          value: {
+            type: 'array',
+            items: { $ref: '#/components/schemas/Project' },
+          },
         },
       },
       RegisterRequest: {
@@ -108,12 +135,13 @@ const openapiSpec = {
       },
       TaskCreateRequest: {
         type: 'object',
-        required: ['title', 'dueDate'],
+        required: ['title', 'dueDate', 'projectId'],
         properties: {
           title: { type: 'string', example: 'Write API docs' },
           description: { type: 'string', nullable: true },
-          status: { type: 'string', enum: ['PENDING', 'IN_PROGRESS', 'DONE'] },
+          status: { type: 'string', enum: ['TODO', 'IN_PROGRESS', 'TEST', 'DONE'] },
           dueDate: { type: 'string', format: 'date-time' },
+          projectId: { type: 'string', format: 'uuid' },
         },
       },
       TaskUpdateRequest: {
@@ -122,8 +150,9 @@ const openapiSpec = {
         properties: {
           title: { type: 'string' },
           description: { type: 'string', nullable: true },
-          status: { type: 'string', enum: ['PENDING', 'IN_PROGRESS', 'DONE'] },
+          status: { type: 'string', enum: ['TODO', 'IN_PROGRESS', 'TEST', 'DONE'] },
           dueDate: { type: 'string', format: 'date-time' },
+          projectId: { type: 'string', format: 'uuid' },
         },
       },
       TaskListResponse: {
@@ -307,6 +336,56 @@ const openapiSpec = {
           401: errorResponse('Missing or invalid access token'),
           403: errorResponse('Not the owner and not an admin'),
           404: errorResponse('Task not found'),
+        },
+      },
+    },
+    '/projects': {
+      get: {
+        tags: ['Projects'],
+        summary: 'List projects (own projects for USER, all for ADMIN)',
+        security: [{ bearerAuth: [] }],
+        responses: {
+          200: {
+            description: 'Project list',
+            content: { 'application/json': { schema: { $ref: '#/components/schemas/ProjectListResponse' } } },
+          },
+          401: errorResponse('Missing or invalid access token'),
+        },
+      },
+      post: {
+        tags: ['Projects'],
+        summary: 'Create a project (ownerId is always the authenticated user)',
+        security: [{ bearerAuth: [] }],
+        requestBody: {
+          required: true,
+          content: { 'application/json': { schema: { $ref: '#/components/schemas/ProjectCreateRequest' } } },
+        },
+        responses: {
+          201: {
+            description: 'Project created',
+            content: { 'application/json': { schema: { $ref: '#/components/schemas/Project' } } },
+          },
+          400: errorResponse('Validation error'),
+          401: errorResponse('Missing or invalid access token'),
+        },
+      },
+    },
+    '/projects/{id}': {
+      parameters: [
+        { name: 'id', in: 'path', required: true, schema: { type: 'string', format: 'uuid' } },
+      ],
+      get: {
+        tags: ['Projects'],
+        summary: 'Get a project by id (owner or admin only)',
+        security: [{ bearerAuth: [] }],
+        responses: {
+          200: {
+            description: 'Project found',
+            content: { 'application/json': { schema: { $ref: '#/components/schemas/Project' } } },
+          },
+          401: errorResponse('Missing or invalid access token'),
+          403: errorResponse('Not the owner and not an admin'),
+          404: errorResponse('Project not found'),
         },
       },
     },

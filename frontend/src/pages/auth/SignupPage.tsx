@@ -1,6 +1,5 @@
 import { type FormEvent, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -8,6 +7,7 @@ import { Checkbox } from '@/components/ui/checkbox'
 import { Logo } from '@/components/Logo'
 import { registerRequest } from '@/lib/api/auth'
 import { getApiErrorMessage } from '@/lib/api/client'
+import { notifyError, notifySuccess } from '@/lib/toast'
 
 export function SignupPage() {
   const navigate = useNavigate()
@@ -24,10 +24,10 @@ export function SignupPage() {
       // Name and the Admin checkbox are UI-only: the backend's /register
       // endpoint only accepts { email, password } and always creates a USER role.
       await registerRequest(email, password)
-      toast.success('Account created — sign in to continue')
+      notifySuccess('Account created', 'Sign in to continue')
       navigate('/login')
     } catch (error) {
-      toast.error(getApiErrorMessage(error, 'Could not create account'))
+      notifyError('Could not create account', getApiErrorMessage(error))
     } finally {
       setIsSubmitting(false)
     }

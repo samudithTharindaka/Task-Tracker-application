@@ -1,8 +1,8 @@
 const { ApiError } = require('../middleware/error.middleware');
 
-const FILTERABLE_FIELDS = ['status', 'ownerId'];
+const FILTERABLE_FIELDS = ['status', 'ownerId', 'projectId'];
 const ORDERABLE_FIELDS = ['title', 'status', 'dueDate', 'createdAt', 'updatedAt', 'ownerId'];
-const VALID_STATUSES = ['PENDING', 'IN_PROGRESS', 'DONE'];
+const VALID_STATUSES = ['TODO', 'IN_PROGRESS', 'TEST', 'DONE'];
 
 const DEFAULT_TOP = 20;
 const MAX_TOP = 100;

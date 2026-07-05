@@ -4,15 +4,22 @@ import { Button } from '@/components/ui/button'
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import { TaskFieldsTable, type TaskFieldsValue } from '@/components/tasks/TaskFieldsTable'
-import { useTasksStore } from '@/lib/mock/tasksStore'
+import { useTasksStore } from '@/store/tasksStore'
+import { useTaskExtrasStore } from '@/lib/mock/taskExtrasStore'
 import { useAuthStore } from '@/store/authStore'
-import type { MockTask } from '@/types/task'
+import { getApiErrorMessage } from '@/lib/api/client'
+import { confirmAction, notifyError, notifySuccess } from '@/lib/toast'
+import type { Task } from '@/types/task'
 
-export function TaskDetailSheet({ task, onClose }: { task: MockTask | null; onClose: () => void }) {
+export function TaskDetailSheet({ task, onClose }: { task: Task | null; onClose: () => void }) {
   const updateTask = useTasksStore((s) => s.updateTask)
   const deleteTask = useTasksStore((s) => s.deleteTask)
-  const addComment = useTasksStore((s) => s.addComment)
-  const currentUserEmail = useAuthStore((s) => s.user?.email)
+  const extras = useTaskExtrasStore((s) => (task ? s.getExtras(task.id) : null))
+  const setLabel = useTaskExtrasStore((s) => s.setLabel)
+  const addComment = useTaskExtrasStore((s) => s.addComment)
+  const removeExtras = useTaskExtrasStore((s) => s.removeExtras)
+  const currentUser = useAuthStore((s) => s.user)
+  const currentUserEmail = currentUser?.email
 
   const [description, setDescription] = useState(task?.description ?? '')
   const [comment, setComment] = useState('')
@@ -22,36 +29,76 @@ export function TaskDetailSheet({ task, onClose }: { task: MockTask | null; onCl
     setComment('')
   }, [task?.id, task?.description])
 
-  if (!task) return null
+  if (!task || !extras) return null
+
+  // The backend always sets ownerId to whoever created the task and never
+  // lets it change (updateTaskSchema has no ownerId field) — and USER-role
+  // task listings are always server-scoped to the caller's own tasks, so a
+  // visible task's owner is the current user unless we're an admin looking
+  // at someone else's (rare; falls back to the decorative mock identity).
+  const ownerName = task.ownerId === currentUser?.id ? (currentUserEmail ?? 'You') : extras.assignee.name
 
   const fields: TaskFieldsValue = {
-    label: task.label,
-    column: task.column,
-    dueDate: task.dueDate ?? '',
-    owner: task.assignee.name,
-    project: task.project,
+    label: extras.label,
+    status: task.status,
+    dueDate: task.dueDate.slice(0, 10),
+    ownerName,
+    projectId: task.projectId,
   }
 
-  function handleFieldsChange(patch: Partial<TaskFieldsValue>) {
+  async function handleFieldsChange(patch: Partial<TaskFieldsValue>) {
     if (!task) return
-    updateTask(task.id, {
-      label: patch.label ?? task.label,
-      column: patch.column ?? task.column,
-      dueDate: patch.dueDate ?? task.dueDate,
-      project: patch.project ?? task.project,
-      assignee: patch.owner ? { ...task.assignee, name: patch.owner } : task.assignee,
-    })
+    if (patch.label !== undefined) {
+      setLabel(task.id, patch.label)
+      notifySuccess('Label updated', `Set to ${patch.label}`)
+    }
+
+    const realPatch: { status?: Task['status']; dueDate?: string; projectId?: string } = {}
+    if (patch.status !== undefined) realPatch.status = patch.status
+    if (patch.dueDate !== undefined) realPatch.dueDate = patch.dueDate
+    if (patch.projectId !== undefined) realPatch.projectId = patch.projectId
+
+    if (Object.keys(realPatch).length > 0) {
+      try {
+        await updateTask(task.id, realPatch)
+        notifySuccess('Task updated')
+      } catch (error) {
+        notifyError('Could not update task', getApiErrorMessage(error))
+      }
+    }
   }
 
   function handleDelete() {
     if (!task) return
-    deleteTask(task.id)
-    onClose()
+    confirmAction({
+      description: `Delete "${task.title}"? This can't be undone.`,
+      onConfirm: async () => {
+        try {
+          await deleteTask(task.id)
+          removeExtras(task.id)
+          notifySuccess('Task deleted')
+          onClose()
+        } catch (error) {
+          notifyError('Could not delete task', getApiErrorMessage(error))
+        }
+      },
+    })
+  }
+
+  async function handleDescriptionBlur() {
+    if (!task || description === task.description) return
+    try {
+      await updateTask(task.id, { description })
+      notifySuccess('Description updated')
+    } catch (error) {
+      notifyError('Could not update description', getApiErrorMessage(error))
+    }
   }
 
   function handleAddComment() {
     if (!task || !comment.trim()) return
     addComment(task.id, comment.trim(), currentUserEmail ?? 'You')
+    notifySuccess('Comment added')
     setComment('')
   }
 
@@ -76,9 +123,9 @@ export function TaskDetailSheet({ task, onClose }: { task: MockTask | null; onCl
           <div>
             <h4 className="mb-1 text-xs font-semibold tracking-wide text-muted-foreground uppercase">Description</h4>
             <textarea
-              value={description}
+              value={description ?? ''}
               onChange={(e) => setDescription(e.target.value)}
-              onBlur={() => updateTask(task.id, { description })}
+              onBlur={handleDescriptionBlur}
               rows={2}
               className="w-full resize-none border-none text-sm outline-none"
             />
@@ -89,7 +136,7 @@ export function TaskDetailSheet({ task, onClose }: { task: MockTask | null; onCl
           <div>
             <h4 className="mb-3 text-sm font-semibold">Comments</h4>
             <div className="space-y-4">
-              {task.comments.map((c) => (
+              {extras.comments.map((c) => (
                 <div key={c.id} className="flex gap-3">
                   <Avatar className="size-8">
                     <AvatarFallback style={{ backgroundColor: c.avatarColor }} className="text-xs text-white">

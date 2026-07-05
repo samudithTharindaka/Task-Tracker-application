@@ -1,11 +1,20 @@
 import { useDraggable } from '@dnd-kit/core'
-import { CalendarIcon, CheckCheckIcon, MessageCircleIcon, ThumbsUpIcon } from 'lucide-react'
+import { format } from 'date-fns'
+import { CalendarIcon, CheckCheckIcon, MessageCircleIcon } from 'lucide-react'
 import { cn } from '@/lib/utils'
-import { Badge } from '@/components/ui/badge'
+import { LabelBadge } from '@/components/tasks/LabelBadge'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
-import type { MockTask } from '@/types/task'
+import type { Task, TaskExtras } from '@/types/task'
 
-export function TaskCard({ task, onClick }: { task: MockTask; onClick: () => void }) {
+export function TaskCard({
+  task,
+  extras,
+  onClick,
+}: {
+  task: Task
+  extras: TaskExtras
+  onClick: () => void
+}) {
   const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
     id: task.id,
   })
@@ -30,12 +39,10 @@ export function TaskCard({ task, onClick }: { task: MockTask; onClick: () => voi
       <p className="mt-1 line-clamp-2 text-xs text-muted-foreground">{task.description}</p>
 
       <div className="mt-4 flex items-center justify-between">
-        <Badge variant="secondary" className="bg-primary/10 text-primary">
-          {task.label}
-        </Badge>
+        <LabelBadge label={extras.label} />
         <Avatar className="size-6">
-          <AvatarFallback style={{ backgroundColor: task.assignee.avatarColor }} className="text-[10px] text-white">
-            {task.assignee.name
+          <AvatarFallback style={{ backgroundColor: extras.assignee.avatarColor }} className="text-[10px] text-white">
+            {extras.assignee.name
               .split(' ')
               .map((p) => p[0])
               .join('')}
@@ -46,19 +53,17 @@ export function TaskCard({ task, onClick }: { task: MockTask; onClick: () => voi
       <div className="mt-3 flex items-center justify-between text-xs text-muted-foreground">
         <span className="flex items-center gap-1">
           <MessageCircleIcon className="size-3.5" />
-          {task.comments.length}
+          {extras.comments.length}
         </span>
-        {task.dueDate === 'Done' ? (
+        {task.status === 'DONE' ? (
           <span className="flex items-center gap-1 font-medium text-success">
             <CheckCheckIcon className="size-3.5" /> Done
           </span>
-        ) : task.dueDate ? (
+        ) : (
           <span className="flex items-center gap-1">
-            <CalendarIcon className="size-3.5" /> {task.dueDate}
+            <CalendarIcon className="size-3.5" /> {format(new Date(task.dueDate), 'MMM d')}
           </span>
-        ) : task.column === 'QA' ? (
-          <ThumbsUpIcon className="size-3.5" />
-        ) : null}
+        )}
       </div>
     </div>
   )

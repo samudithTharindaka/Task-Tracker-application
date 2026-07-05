@@ -2,14 +2,17 @@ import type { ReactNode } from 'react'
 import { BookmarkIcon, CalendarIcon, FileTextIcon, PackageIcon, UserIcon } from 'lucide-react'
 import { Input } from '@/components/ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { BOARD_COLUMNS, type BoardColumn } from '@/types/task'
+import { LabelBadge } from '@/components/tasks/LabelBadge'
+import { StatusBadge } from '@/components/tasks/StatusBadge'
+import { useProjectsStore } from '@/store/projectsStore'
+import { BOARD_COLUMNS, TASK_LABELS, type TaskLabel, type TaskStatus } from '@/types/task'
 
 export interface TaskFieldsValue {
-  label: string
-  column: BoardColumn
+  label: TaskLabel
+  status: TaskStatus
   dueDate: string
-  owner: string
-  project: string
+  ownerName: string
+  projectId: string
 }
 
 const ROW_ICON_CLASS = 'size-4 text-muted-foreground'
@@ -17,31 +20,37 @@ const ROW_ICON_CLASS = 'size-4 text-muted-foreground'
 export function TaskFieldsTable({
   value,
   onChange,
-  readOnlyProject = true,
 }: {
   value: TaskFieldsValue
   onChange: (patch: Partial<TaskFieldsValue>) => void
-  readOnlyProject?: boolean
 }) {
+  const projects = useProjectsStore((s) => s.projects)
+
   return (
     <div className="divide-y rounded-lg border">
       <Row icon={<BookmarkIcon className={ROW_ICON_CLASS} />} label="Label">
-        <Input
-          value={value.label}
-          onChange={(e) => onChange({ label: e.target.value })}
-          placeholder="e.g. Development"
-          className="h-8 border-none shadow-none focus-visible:ring-0"
-        />
+        <Select value={value.label} onValueChange={(label) => onChange({ label: label as TaskLabel })}>
+          <SelectTrigger className="h-8 w-full border-none shadow-none">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            {TASK_LABELS.map((l) => (
+              <SelectItem key={l.id} value={l.id}>
+                <LabelBadge label={l.id} />
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
       </Row>
       <Row icon={<PackageIcon className={ROW_ICON_CLASS} />} label="Status">
-        <Select value={value.column} onValueChange={(column) => onChange({ column: column as BoardColumn })}>
+        <Select value={value.status} onValueChange={(status) => onChange({ status: status as TaskStatus })}>
           <SelectTrigger className="h-8 w-full border-none shadow-none">
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
             {BOARD_COLUMNS.map((c) => (
               <SelectItem key={c.id} value={c.id}>
-                {c.label}
+                <StatusBadge status={c.id} />
               </SelectItem>
             ))}
           </SelectContent>
@@ -49,27 +58,32 @@ export function TaskFieldsTable({
       </Row>
       <Row icon={<CalendarIcon className={ROW_ICON_CLASS} />} label="Due date">
         <Input
+          type="date"
           value={value.dueDate}
           onChange={(e) => onChange({ dueDate: e.target.value })}
-          placeholder="e.g. Tomorrow"
           className="h-8 border-none shadow-none focus-visible:ring-0"
         />
       </Row>
       <Row icon={<UserIcon className={ROW_ICON_CLASS} />} label="Owner">
         <Input
-          value={value.owner}
-          onChange={(e) => onChange({ owner: e.target.value })}
-          placeholder="Assignee name"
-          className="h-8 border-none shadow-none focus-visible:ring-0"
+          value={value.ownerName}
+          disabled
+          className="h-8 border-none shadow-none focus-visible:ring-0 disabled:opacity-100"
         />
       </Row>
       <Row icon={<FileTextIcon className={ROW_ICON_CLASS} />} label="Project">
-        <Input
-          value={value.project}
-          onChange={(e) => onChange({ project: e.target.value })}
-          disabled={readOnlyProject}
-          className="h-8 border-none shadow-none focus-visible:ring-0 disabled:opacity-100"
-        />
+        <Select value={value.projectId} onValueChange={(projectId) => onChange({ projectId })}>
+          <SelectTrigger className="h-8 w-full border-none shadow-none">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            {projects.map((p) => (
+              <SelectItem key={p.id} value={p.id}>
+                {p.name}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
       </Row>
     </div>
   )

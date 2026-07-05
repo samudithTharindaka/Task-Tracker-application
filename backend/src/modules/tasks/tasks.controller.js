@@ -2,7 +2,7 @@ const { z } = require('zod');
 const tasksService = require('./tasks.service');
 const { buildODataResponse } = require('../../utils/odata-response.util');
 
-const TASK_STATUSES = ['PENDING', 'IN_PROGRESS', 'DONE'];
+const TASK_STATUSES = ['TODO', 'IN_PROGRESS', 'TEST', 'DONE'];
 
 const idParamSchema = z.object({
   id: z.string().uuid('Invalid task id'),
@@ -13,6 +13,7 @@ const createTaskSchema = z.object({
   description: z.string().optional().nullable(),
   status: z.enum(TASK_STATUSES).optional(),
   dueDate: z.coerce.date({ required_error: 'dueDate is required' }),
+  projectId: z.string().uuid('Invalid project id'),
 });
 
 const updateTaskSchema = z
@@ -21,6 +22,7 @@ const updateTaskSchema = z
     description: z.string().optional().nullable(),
     status: z.enum(TASK_STATUSES).optional(),
     dueDate: z.coerce.date().optional(),
+    projectId: z.string().uuid('Invalid project id').optional(),
   })
   .refine((data) => Object.keys(data).length > 0, {
     message: 'At least one field must be provided',

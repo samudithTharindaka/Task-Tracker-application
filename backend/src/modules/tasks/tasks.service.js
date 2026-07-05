@@ -1,6 +1,7 @@
 const prisma = require('../../config/prisma');
 const { ApiError } = require('../../middleware/error.middleware');
 const { isOwnerOrAdmin } = require('../users/users.service');
+const { assertProjectAccess } = require('../projects/projects.service');
 const { emitTaskEvent } = require('../../sockets');
 
 async function listTasks(odataQuery) {
@@ -29,6 +30,8 @@ async function getTaskById(user, id) {
 }
 
 async function createTask(user, data) {
+  await assertProjectAccess(user, data.projectId);
+
   const task = await prisma.task.create({
     data: { ...data, ownerId: user.id },
   });
@@ -47,6 +50,10 @@ async function updateTask(user, id, data) {
 
   if (!isOwnerOrAdmin(user, existing.ownerId)) {
     throw new ApiError(403, 'FORBIDDEN', 'You do not have access to this task');
+  }
+
+  if (data.projectId) {
+    await assertProjectAccess(user, data.projectId);
   }
 
   const task = await prisma.task.update({ where: { id }, data });
