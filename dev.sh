@@ -6,8 +6,26 @@ set -e
 
 cd "$(dirname "$0")"
 
+# On Windows/Git Bash, npm wraps its child process in a way that can escape
+# plain job-control signals, so a crashed terminal or a previous run that
+# didn't exit cleanly can leave node/vite still bound to these ports —
+# causing the next run to fail with EADDRINUSE. Force-free them both before
+# starting and on exit. No-op on Linux/macOS (no powershell.exe there).
+free_dev_ports() {
+  if command -v powershell.exe >/dev/null 2>&1; then
+    for port in 4000 5173; do
+      powershell.exe -NoProfile -Command \
+        "Get-NetTCPConnection -LocalPort $port -ErrorAction SilentlyContinue | ForEach-Object { Stop-Process -Id \$_.OwningProcess -Force -ErrorAction SilentlyContinue }" \
+        >/dev/null 2>&1 || true
+    done
+  fi
+}
+
 echo "Starting Postgres..."
 docker compose up -d postgres
+
+echo "Freeing ports 4000/5173 from any leftover process..."
+free_dev_ports
 
 cleanup() {
   echo ""
@@ -15,18 +33,7 @@ cleanup() {
   # `kill $PID` alone only kills the subshell, not npm's actual child
   # process (vite/node) — kill 0 signals the whole process group instead.
   kill 0 2>/dev/null
-
-  # On Windows/Git Bash, npm wraps its child process in a way that can
-  # escape plain job-control signals. Force-free the known dev ports as a
-  # safety net so nothing is ever left running in the background. No-op on
-  # Linux/macOS (no powershell.exe there).
-  if command -v powershell.exe >/dev/null 2>&1; then
-    for port in 4000 5173; do
-      powershell.exe -NoProfile -Command \
-        "Get-NetTCPConnection -LocalPort $port -ErrorAction SilentlyContinue | ForEach-Object { Stop-Process -Id \$_.OwningProcess -Force -ErrorAction SilentlyContinue }" \
-        >/dev/null 2>&1
-    done
-  fi
+  free_dev_ports
 }
 trap cleanup EXIT INT TERM
 

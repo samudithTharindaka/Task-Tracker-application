@@ -1,21 +1,36 @@
-import { type FormEvent, useState } from 'react'
+import { type FormEvent, useEffect, useState } from 'react'
 import { SendIcon, SparklesIcon } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { useAiStore } from '@/lib/mock/aiStore'
+import { confirmAction } from '@/lib/toast'
+import { useAiStore } from '@/store/aiStore'
 import { cn } from '@/lib/utils'
 
 const SUGGESTIONS = [
-  'What can I ask you to do?',
-  'Which one of my projects is performing the best?',
-  'What projects should I be concerned about right now?',
+  "What's due this week?",
+  "Create a task called 'Fix login bug' due Friday",
+  'Show my TEST tasks',
 ]
 
 export function AiAssistantPage() {
   const messages = useAiStore((s) => s.messages)
   const isThinking = useAiStore((s) => s.isThinking)
   const sendMessage = useAiStore((s) => s.sendMessage)
+  const pendingDelete = useAiStore((s) => s.pendingDelete)
+  const confirmDelete = useAiStore((s) => s.confirmDelete)
+  const dismissDelete = useAiStore((s) => s.dismissDelete)
   const [input, setInput] = useState('')
+
+  useEffect(() => {
+    if (!pendingDelete) return
+    const { taskId, title } = pendingDelete
+    confirmAction({
+      title: 'Delete this task?',
+      description: `The assistant wants to delete "${title}". This can't be undone.`,
+      onConfirm: () => confirmDelete(taskId),
+    })
+    dismissDelete()
+  }, [pendingDelete, confirmDelete, dismissDelete])
 
   function handleSubmit(e: FormEvent) {
     e.preventDefault()

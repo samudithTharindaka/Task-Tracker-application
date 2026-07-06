@@ -22,6 +22,7 @@ services:
       - '4000:4000'
     environment:
       DATABASE_URL: postgresql://postgres:postgres@postgres:5432/task_tracker?schema=public
+      DIRECT_URL: postgresql://postgres:postgres@postgres:5432/task_tracker?schema=public
       JWT_ACCESS_SECRET: change-me-access-secret
       JWT_REFRESH_SECRET: change-me-refresh-secret
       JWT_ACCESS_EXPIRY: 15m
