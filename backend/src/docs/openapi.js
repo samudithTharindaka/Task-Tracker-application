@@ -25,6 +25,7 @@ const openapiSpec = {
     { name: 'Auth', description: 'Registration, login, and token refresh' },
     { name: 'Tasks', description: 'Task CRUD and OData-style listing' },
     { name: 'Projects', description: 'Project listing and creation' },
+    { name: 'Ai', description: 'Conversational task/project search and management assistant' },
   ],
   components: {
     securitySchemes: {
@@ -163,6 +164,46 @@ const openapiSpec = {
           value: {
             type: 'array',
             items: { $ref: '#/components/schemas/Task' },
+          },
+        },
+      },
+      AiChatRequest: {
+        type: 'object',
+        required: ['message'],
+        properties: {
+          message: { type: 'string', example: "What's due this week?" },
+          history: {
+            type: 'array',
+            maxItems: 20,
+            description: 'Recent prior turns of the conversation, oldest first',
+            items: {
+              type: 'object',
+              properties: {
+                role: { type: 'string', enum: ['user', 'assistant'] },
+                content: { type: 'string' },
+              },
+            },
+          },
+          projectId: {
+            type: 'string',
+            format: 'uuid',
+            description: "The currently open project in the UI, used as a default for create/search actions",
+          },
+        },
+      },
+      AiChatResponse: {
+        type: 'object',
+        properties: {
+          reply: { type: 'string' },
+          mutated: { type: 'boolean', description: 'True if the assistant created or updated a task this turn' },
+          pendingDelete: {
+            type: 'object',
+            nullable: true,
+            description: 'Present when the assistant identified a task to delete — the actual delete still requires the user to confirm via DELETE /tasks/{id}',
+            properties: {
+              taskId: { type: 'string', format: 'uuid' },
+              title: { type: 'string' },
+            },
           },
         },
       },
@@ -386,6 +427,32 @@ const openapiSpec = {
           401: errorResponse('Missing or invalid access token'),
           403: errorResponse('Not the owner and not an admin'),
           404: errorResponse('Project not found'),
+        },
+      },
+    },
+    '/ai/chat': {
+      post: {
+        tags: ['Ai'],
+        summary: 'Send a message to the AI task/project assistant',
+        description:
+          'The assistant can search, create, and update the tasks/projects the caller has access to (own only ' +
+          'for USER, any for ADMIN) using the same server-side ownership rules as the REST endpoints. Deleting a ' +
+          'task is never performed directly by the assistant — a returned pendingDelete must be confirmed by the ' +
+          'client via the existing DELETE /tasks/{id} endpoint.',
+        security: [{ bearerAuth: [] }],
+        requestBody: {
+          required: true,
+          content: { 'application/json': { schema: { $ref: '#/components/schemas/AiChatRequest' } } },
+        },
+        responses: {
+          200: {
+            description: 'Assistant reply',
+            content: { 'application/json': { schema: { $ref: '#/components/schemas/AiChatResponse' } } },
+          },
+          400: errorResponse('Validation error'),
+          401: errorResponse('Missing or invalid access token'),
+          502: errorResponse('The AI provider returned an error (e.g. rate limited, quota exceeded)'),
+          503: errorResponse('AI features are not configured (missing OPENAI_API_KEY)'),
         },
       },
     },

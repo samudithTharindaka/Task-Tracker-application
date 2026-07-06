@@ -21,4 +21,8 @@ module.exports = {
   jwtAccessExpiry: process.env.JWT_ACCESS_EXPIRY,
   jwtRefreshExpiry: process.env.JWT_REFRESH_EXPIRY,
   port: parseInt(process.env.PORT, 10) || 4000,
+  // Deliberately not in `required` above: a missing key should only disable
+  // the AI feature (503), not crash the whole server at boot.
+  openaiApiKey: process.env.OPENAI_API_KEY,
+  openaiModel: process.env.OPENAI_MODEL || 'gpt-4o-mini',
 };
