@@ -1,37 +1,23 @@
-# ---- builder: full deps (needed for `prisma generate`) + generate the client ----
-FROM node:22-alpine AS builder
+FROM node:22-alpine
 WORKDIR /app
+ENV NODE_ENV=production
 # `prisma generate` only parses schema.prisma — it never connects — but it
 # does require the env var referenced there to be set to *something*.
 ENV DATABASE_URL="postgresql://placeholder:placeholder@localhost:5432/placeholder"
 
 # Alpine (musl) doesn't ship OpenSSL by default. Without it Prisma can't
-# detect the right query-engine build and silently falls back to a guess —
-# install it so the engine generated here matches what's actually on the
-# runtime image below.
+# detect the right query-engine build and silently falls back to a guess.
 RUN apk add --no-cache openssl
 
 COPY package*.json ./
-RUN npm ci
-
 COPY prisma ./prisma
-RUN npx prisma generate
-
-COPY src ./src
-
-# ---- runtime: slim image, prod deps only ----
-FROM node:22-alpine AS runtime
-WORKDIR /app
-ENV NODE_ENV=production
-
-RUN apk add --no-cache openssl
-
-COPY package*.json ./
+# postinstall (`prisma generate`) needs prisma/schema.prisma, which is why
+# it's copied in above. Runs as root (before USER switch below) so the
+# downloaded query-engine binaries end up world-readable/executable —
+# the non-root user at runtime only needs to read and run them, not write.
 RUN npm ci --omit=dev
 
-COPY --from=builder /app/prisma ./prisma
-COPY --from=builder /app/node_modules/.prisma ./node_modules/.prisma
-COPY --from=builder /app/src ./src
+COPY src ./src
 
 RUN addgroup -S nodejs && adduser -S nodejs -G nodejs
 USER nodejs
