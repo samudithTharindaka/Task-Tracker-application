@@ -1,5 +1,6 @@
 import { Navigate, Route, Routes } from 'react-router-dom'
 import { Toaster } from '@/components/ui/sonner'
+import { useRealtimeTasks } from '@/hooks/useRealtimeTasks'
 import { ProtectedRoute } from '@/routes/ProtectedRoute'
 import { AppShell } from '@/layout/AppShell'
 import { LoginPage } from '@/pages/auth/LoginPage'
@@ -12,6 +13,8 @@ import { AiAssistantPage } from '@/pages/ai/AiAssistantPage'
 import { ProfilePage } from '@/pages/profile/ProfilePage'
 
 export function App() {
+  useRealtimeTasks()
+
   return (
     <>
       <Routes>

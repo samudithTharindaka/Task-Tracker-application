@@ -11,6 +11,10 @@ interface TasksState {
   updateTask: (id: string, patch: UpdateTaskInput) => Promise<void>
   moveTask: (id: string, status: TaskStatus) => Promise<void>
   deleteTask: (id: string) => Promise<void>
+  // Applied from realtime socket events (see lib/socket.ts) — inserts or
+  // replaces by id, rather than assuming the task is already loaded.
+  upsertTask: (task: Task) => void
+  removeTask: (id: string) => void
 }
 
 // Module-scoped request counter so a slower, superseded fetchTasks response
@@ -61,4 +65,11 @@ export const useTasksStore = create<TasksState>((set, get) => ({
       throw err
     }
   },
+  upsertTask: (task) => {
+    const exists = get().tasks.some((t) => t.id === task.id)
+    set({
+      tasks: exists ? get().tasks.map((t) => (t.id === task.id ? task : t)) : [...get().tasks, task],
+    })
+  },
+  removeTask: (id) => set({ tasks: get().tasks.filter((t) => t.id !== id) }),
 }))

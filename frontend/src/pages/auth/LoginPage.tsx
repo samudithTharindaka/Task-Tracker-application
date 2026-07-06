@@ -61,7 +61,7 @@ export function LoginPage() {
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               placeholder="PASSWORD"
-              className="h-12 border-white/40 bg-transparent pl-10 tracking-wide text-white uppercase placeholder:text-white/60 focus-visible:border-white focus-visible:ring-white/30"
+              className="h-12 border-white/40 bg-transparent pl-10 tracking-wide text-white placeholder:text-white/60 focus-visible:border-white focus-visible:ring-white/30"
             />
           </div>
 
