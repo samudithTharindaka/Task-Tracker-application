@@ -4,6 +4,7 @@ const swaggerUi = require('swagger-ui-express');
 const authRoutes = require('./modules/auth/auth.routes');
 const tasksRoutes = require('./modules/tasks/tasks.routes');
 const projectsRoutes = require('./modules/projects/projects.routes');
+const aiRoutes = require('./modules/ai/ai.routes');
 const { notFoundHandler, errorHandler } = require('./middleware/error.middleware');
 const openapiSpec = require('./docs/openapi');
 
@@ -20,6 +21,7 @@ app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(openapiSpec));
 app.use('/api/auth', authRoutes);
 app.use('/api/tasks', tasksRoutes);
 app.use('/api/projects', projectsRoutes);
+app.use('/api/ai', aiRoutes);
 
 app.use(notFoundHandler);
 app.use(errorHandler);
