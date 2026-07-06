@@ -4,11 +4,16 @@ const { isOwnerOrAdmin } = require('../users/users.service');
 const { assertProjectAccess } = require('../projects/projects.service');
 const { emitTaskEvent } = require('../../sockets');
 
+// Every read embeds the real owner's id/email so the frontend can show the
+// task's actual owner (Board avatar, List "User" column) instead of falling
+// back to decorative mock data for tasks the viewer doesn't own themselves.
+const OWNER_INCLUDE = { owner: { select: { id: true, email: true } } };
+
 async function listTasks(odataQuery) {
   const { where, orderBy, skip, take } = odataQuery;
 
   const [items, count] = await Promise.all([
-    prisma.task.findMany({ where, orderBy, skip, take }),
+    prisma.task.findMany({ where, orderBy, skip, take, include: OWNER_INCLUDE }),
     prisma.task.count({ where }),
   ]);
 
@@ -16,7 +21,7 @@ async function listTasks(odataQuery) {
 }
 
 async function getTaskById(user, id) {
-  const task = await prisma.task.findUnique({ where: { id } });
+  const task = await prisma.task.findUnique({ where: { id }, include: OWNER_INCLUDE });
 
   if (!task) {
     throw new ApiError(404, 'NOT_FOUND', 'Task not found');
@@ -34,6 +39,7 @@ async function createTask(user, data) {
 
   const task = await prisma.task.create({
     data: { ...data, ownerId: user.id },
+    include: OWNER_INCLUDE,
   });
 
   emitTaskEvent('task:created', task);
@@ -56,7 +62,7 @@ async function updateTask(user, id, data) {
     await assertProjectAccess(user, data.projectId);
   }
 
-  const task = await prisma.task.update({ where: { id }, data });
+  const task = await prisma.task.update({ where: { id }, data, include: OWNER_INCLUDE });
 
   emitTaskEvent('task:updated', task);
 
@@ -64,7 +70,7 @@ async function updateTask(user, id, data) {
 }
 
 async function deleteTask(user, id) {
-  const existing = await prisma.task.findUnique({ where: { id } });
+  const existing = await prisma.task.findUnique({ where: { id }, include: OWNER_INCLUDE });
 
   if (!existing) {
     throw new ApiError(404, 'NOT_FOUND', 'Task not found');

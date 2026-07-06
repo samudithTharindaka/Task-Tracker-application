@@ -46,6 +46,11 @@ model Task {
   title       String
   description String?
   status      TaskStatus @default(TODO)
+  // Plain String, not a Postgres enum — the frontend's label set includes
+  // values with slashes/spaces ("UI/UX", "Dev Ops") that Prisma enum
+  // identifiers can't represent without per-value @map gymnastics. The fixed
+  // set is validated at the application layer (zod), same as Project.name.
+  label       String     @default("Development")
   dueDate     DateTime
   ownerId     String
   owner       User       @relation(fields: [ownerId], references: [id], onDelete: Cascade)

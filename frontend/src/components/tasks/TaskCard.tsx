@@ -4,6 +4,8 @@ import { CalendarIcon, CheckCheckIcon, MessageCircleIcon } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { LabelBadge } from '@/components/tasks/LabelBadge'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
+import { ownerAvatarColor, ownerDisplayName } from '@/lib/ownerDisplay'
+import { useAuthStore } from '@/store/authStore'
 import type { Task, TaskExtras } from '@/types/task'
 
 export function TaskCard({
@@ -18,10 +20,13 @@ export function TaskCard({
   const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
     id: task.id,
   })
+  const currentUser = useAuthStore((s) => s.user)
 
   const style = transform
     ? { transform: `translate3d(${transform.x}px, ${transform.y}px, 0)` }
     : undefined
+
+  const ownerName = ownerDisplayName(task, currentUser)
 
   return (
     <div
@@ -39,13 +44,10 @@ export function TaskCard({
       <p className="mt-1 line-clamp-2 text-xs text-muted-foreground">{task.description}</p>
 
       <div className="mt-4 flex items-center justify-between">
-        <LabelBadge label={extras.label} />
+        <LabelBadge label={task.label} />
         <Avatar className="size-6">
-          <AvatarFallback style={{ backgroundColor: extras.assignee.avatarColor }} className="text-[10px] text-white">
-            {extras.assignee.name
-              .split(' ')
-              .map((p) => p[0])
-              .join('')}
+          <AvatarFallback style={{ backgroundColor: ownerAvatarColor(task.ownerId) }} className="text-[10px] text-white">
+            {ownerName.slice(0, 2).toUpperCase()}
           </AvatarFallback>
         </Avatar>
       </div>

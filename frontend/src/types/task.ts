@@ -22,15 +22,19 @@ export interface Task {
   title: string
   description: string | null
   status: TaskStatus
+  label: TaskLabel
   dueDate: string
   ownerId: string
+  // Embedded by the API (tasks.service.js's OWNER_INCLUDE) so the real owner
+  // can be displayed even for tasks the viewer doesn't own themselves.
+  owner: { id: string; email: string }
   projectId: string
   createdAt: string
   updatedAt: string
 }
 
-// --- Still-mocked decoration (backend has no labels, comments, or
-// multi-assignee concept — only a single real `ownerId` per task) ---
+// --- Still-mocked decoration (backend has no comments/multi-assignee
+// concept — only a single real `ownerId` per task) ---
 
 export interface Comment {
   id: string
@@ -38,13 +42,6 @@ export interface Comment {
   avatarColor: string
   body: string
   createdAt: string
-}
-
-export interface Assignee {
-  name: string
-  handle: string
-  email: string
-  avatarColor: string
 }
 
 // Predefined label set (colors per Label,toast and status.png).
@@ -68,7 +65,5 @@ export const STATUS_BADGE_STYLES: Record<TaskStatus, { label: string; className:
 }
 
 export interface TaskExtras {
-  label: TaskLabel
-  assignee: Assignee
   comments: Comment[]
 }

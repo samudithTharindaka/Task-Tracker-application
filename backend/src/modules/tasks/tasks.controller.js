@@ -3,6 +3,7 @@ const tasksService = require('./tasks.service');
 const { buildODataResponse } = require('../../utils/odata-response.util');
 
 const TASK_STATUSES = ['TODO', 'IN_PROGRESS', 'TEST', 'DONE'];
+const TASK_LABELS = ['Development', 'QA', 'UI/UX', 'Planing', 'Other', 'Dev Ops'];
 
 const idParamSchema = z.object({
   id: z.string().uuid('Invalid task id'),
@@ -12,6 +13,7 @@ const createTaskSchema = z.object({
   title: z.string().min(1, 'title is required'),
   description: z.string().optional().nullable(),
   status: z.enum(TASK_STATUSES).optional(),
+  label: z.enum(TASK_LABELS).optional(),
   dueDate: z.coerce.date({ required_error: 'dueDate is required' }),
   projectId: z.string().uuid('Invalid project id'),
 });
@@ -21,6 +23,7 @@ const updateTaskSchema = z
     title: z.string().min(1).optional(),
     description: z.string().optional().nullable(),
     status: z.enum(TASK_STATUSES).optional(),
+    label: z.enum(TASK_LABELS).optional(),
     dueDate: z.coerce.date().optional(),
     projectId: z.string().uuid('Invalid project id').optional(),
   })

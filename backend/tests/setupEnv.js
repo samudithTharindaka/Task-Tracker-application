@@ -8,3 +8,7 @@ process.env.JWT_REFRESH_SECRET ??= 'test-refresh-secret';
 process.env.JWT_ACCESS_EXPIRY ??= '15m';
 process.env.JWT_REFRESH_EXPIRY ??= '7d';
 process.env.PORT ??= '4000';
+// Force this falsy regardless of a real key in a developer's local .env —
+// otherwise test behavior (e.g. config/openaiClient.js constructing a real
+// client) silently depends on whichever machine happens to run them.
+process.env.OPENAI_API_KEY = '';

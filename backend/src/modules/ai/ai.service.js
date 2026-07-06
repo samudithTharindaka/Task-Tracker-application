@@ -1,5 +1,5 @@
 const OpenAI = require('openai');
-const openaiClient = require('../../config/openai');
+const openaiClient = require('../../config/openaiClient');
 const env = require('../../config/env');
 const { ApiError } = require('../../middleware/error.middleware');
 const { TOOL_DEFINITIONS, TOOL_HANDLERS } = require('./ai.tools');

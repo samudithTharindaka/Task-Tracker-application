@@ -1,10 +1,11 @@
 import { apiClient } from '@/lib/api/client'
-import type { Task, TaskStatus } from '@/types/task'
+import type { Task, TaskLabel, TaskStatus } from '@/types/task'
 
 export interface CreateTaskInput {
   title: string
   description?: string | null
   status?: TaskStatus
+  label?: TaskLabel
   dueDate: string
   projectId: string
 }
@@ -13,6 +14,7 @@ export interface UpdateTaskInput {
   title?: string
   description?: string | null
   status?: TaskStatus
+  label?: TaskLabel
   dueDate?: string
   projectId?: string
 }
