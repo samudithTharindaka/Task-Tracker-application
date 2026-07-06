@@ -2,8 +2,10 @@ FROM node:22-alpine
 WORKDIR /app
 ENV NODE_ENV=production
 # `prisma generate` only parses schema.prisma — it never connects — but it
-# does require the env var referenced there to be set to *something*.
+# does require every env var referenced there (both url and directUrl) to be
+# set to *something*.
 ENV DATABASE_URL="postgresql://placeholder:placeholder@localhost:5432/placeholder"
+ENV DIRECT_URL="postgresql://placeholder:placeholder@localhost:5432/placeholder"
 
 # Alpine (musl) doesn't ship OpenSSL by default. Without it Prisma can't
 # detect the right query-engine build and silently falls back to a guess.
