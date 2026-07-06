@@ -3,7 +3,6 @@ import { Link, useNavigate } from 'react-router-dom'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { Checkbox } from '@/components/ui/checkbox'
 import { Logo } from '@/components/Logo'
 import { registerRequest } from '@/lib/api/auth'
 import { getApiErrorMessage } from '@/lib/api/client'
@@ -14,15 +13,14 @@ export function SignupPage() {
   const [name, setName] = useState('')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
-  const [isAdmin, setIsAdmin] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault()
     setIsSubmitting(true)
     try {
-      // Name and the Admin checkbox are UI-only: the backend's /register
-      // endpoint only accepts { email, password } and always creates a USER role.
+      // Name is UI-only: the backend's /register endpoint only accepts
+      // { email, password } and always creates a USER role.
       await registerRequest(email, password)
       notifySuccess('Account created', 'Sign in to continue')
       navigate('/login')
@@ -73,12 +71,6 @@ export function SignupPage() {
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder="Enter your password"
               />
-            </div>
-            <div className="flex items-center gap-2">
-              <Checkbox id="admin" checked={isAdmin} onCheckedChange={(v) => setIsAdmin(v === true)} />
-              <Label htmlFor="admin" className="font-normal">
-                Admin
-              </Label>
             </div>
 
             <Button type="submit" disabled={isSubmitting} className="h-11 w-full text-base font-semibold">
