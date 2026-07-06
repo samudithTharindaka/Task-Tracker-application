@@ -86,8 +86,10 @@ describe('POST /api/tasks', () => {
       id: 'task-1',
       title: 'Buy milk',
       status: 'TODO',
+      label: 'Development',
       projectId: PROJECT_ID,
       ownerId: owner.id,
+      owner: { id: owner.id, email: 'owner@example.com' },
     });
 
     const res = await request(app)
@@ -97,9 +99,27 @@ describe('POST /api/tasks', () => {
 
     expect(res.status).toBe(201);
     expect(res.body.ownerId).toBe(owner.id);
+    expect(res.body.owner).toEqual({ id: owner.id, email: 'owner@example.com' });
     expect(prisma.task.create).toHaveBeenCalledWith(
       expect.objectContaining({ data: expect.objectContaining({ ownerId: owner.id, projectId: PROJECT_ID }) }),
     );
+  });
+
+  it('accepts a valid label and rejects an invalid one', async () => {
+    prisma.project.findUnique.mockResolvedValue({ id: PROJECT_ID, ownerId: owner.id });
+    prisma.task.create.mockResolvedValue({ id: 'task-1', label: 'UI/UX' });
+
+    const ok = await request(app)
+      .post('/api/tasks')
+      .set('Authorization', ownerAuth())
+      .send({ title: 'Design pass', dueDate: '2026-12-31', projectId: PROJECT_ID, label: 'UI/UX' });
+    expect(ok.status).toBe(201);
+
+    const bad = await request(app)
+      .post('/api/tasks')
+      .set('Authorization', ownerAuth())
+      .send({ title: 'x', dueDate: '2026-12-31', projectId: PROJECT_ID, label: 'Not A Label' });
+    expect(bad.status).toBe(400);
   });
 
   it("returns 403 when the project belongs to someone else", async () => {

@@ -7,7 +7,6 @@ import { TaskFieldsTable, type TaskFieldsValue } from '@/components/tasks/TaskFi
 import { useTasksStore } from '@/store/tasksStore'
 import { useProjectsStore } from '@/store/projectsStore'
 import { useAuthStore } from '@/store/authStore'
-import { useTaskExtrasStore } from '@/lib/mock/taskExtrasStore'
 import { getApiErrorMessage } from '@/lib/api/client'
 import { notifyError, notifySuccess } from '@/lib/toast'
 import type { TaskStatus } from '@/types/task'
@@ -20,7 +19,6 @@ export function AddTaskDialog({ defaultStatus, trigger }: { defaultStatus?: Task
   const createTask = useTasksStore((s) => s.createTask)
   const currentProjectId = useProjectsStore((s) => s.currentProjectId)
   const currentUserEmail = useAuthStore((s) => s.user?.email)
-  const setLabel = useTaskExtrasStore((s) => s.setLabel)
 
   const [open, setOpen] = useState(false)
   const [title, setTitle] = useState('')
@@ -54,10 +52,10 @@ export function AddTaskDialog({ defaultStatus, trigger }: { defaultStatus?: Task
         title: title.trim(),
         description: description || null,
         status: fields.status,
+        label: fields.label,
         dueDate: fields.dueDate,
         projectId: fields.projectId,
       })
-      setLabel(task.id, fields.label)
       notifySuccess('Task created', `"${task.title}" was added`)
       setOpen(false)
       reset()

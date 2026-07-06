@@ -21,8 +21,9 @@ import { useProjectsStore } from '@/store/projectsStore'
 import { useAuthStore } from '@/store/authStore'
 import { useTaskExtrasStore } from '@/lib/mock/taskExtrasStore'
 import { getApiErrorMessage } from '@/lib/api/client'
+import { ownerAvatarColor, ownerDisplayName } from '@/lib/ownerDisplay'
 import { confirmAction, notifyError, notifySuccess } from '@/lib/toast'
-import { BOARD_COLUMNS, TASK_LABELS, type Task, type TaskLabel, type TaskStatus } from '@/types/task'
+import { BOARD_COLUMNS, TASK_LABELS, type TaskLabel, type TaskStatus } from '@/types/task'
 
 const PAGE_SIZE = 8
 
@@ -32,7 +33,6 @@ export function ListPage() {
   const fetchTasks = useTasksStore((s) => s.fetchTasks)
   const currentProjectId = useProjectsStore((s) => s.currentProjectId)
   const currentUser = useAuthStore((s) => s.user)
-  const getExtras = useTaskExtrasStore((s) => s.getExtras)
   const removeExtras = useTaskExtrasStore((s) => s.removeExtras)
 
   const [activeTaskId, setActiveTaskId] = useState<string | null>(null)
@@ -49,23 +49,9 @@ export function ListPage() {
 
   const activeTask = tasks.find((t) => t.id === activeTaskId) ?? null
 
-  // The backend always sets ownerId to whoever created the task (and never
-  // lets it change), and USER-role task listings are always server-scoped to
-  // the caller's own tasks — so a visible task's owner is the current user
-  // unless we're an admin looking at someone else's (falls back to the
-  // decorative mock identity in that rare case).
-  function ownerDisplayName(task: Task): string {
-    if (task.ownerId === currentUser?.id) return currentUser?.email ?? 'You'
-    return getExtras(task.id).assignee.name
-  }
-
   const filtered = useMemo(
-    () =>
-      tasks.filter((t) => {
-        const label = getExtras(t.id).label
-        return (!statusFilter || t.status === statusFilter) && (!labelFilter || label === labelFilter)
-      }),
-    [tasks, statusFilter, labelFilter, getExtras],
+    () => tasks.filter((t) => (!statusFilter || t.status === statusFilter) && (!labelFilter || t.label === labelFilter)),
+    [tasks, statusFilter, labelFilter],
   )
 
   const pageCount = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE))
@@ -159,8 +145,7 @@ export function ListPage() {
           </TableHeader>
           <TableBody>
             {paged.map((task) => {
-              const extras = getExtras(task.id)
-              const ownerName = ownerDisplayName(task)
+              const ownerName = ownerDisplayName(task, currentUser)
               return (
                 <TableRow key={task.id} className="cursor-pointer" onClick={() => setActiveTaskId(task.id)}>
                   <TableCell onClick={(e) => e.stopPropagation()}>
@@ -171,7 +156,7 @@ export function ListPage() {
                     <p className="truncate text-xs text-muted-foreground">{task.description || 'No description'}</p>
                   </TableCell>
                   <TableCell>
-                    <LabelBadge label={extras.label} />
+                    <LabelBadge label={task.label} />
                   </TableCell>
                   <TableCell>
                     <StatusBadge status={task.status} />
@@ -179,7 +164,10 @@ export function ListPage() {
                   <TableCell>
                     <div className="flex items-center gap-2">
                       <Avatar className="size-7">
-                        <AvatarFallback className="bg-primary/10 text-xs text-primary">
+                        <AvatarFallback
+                          style={{ backgroundColor: ownerAvatarColor(task.ownerId) }}
+                          className="text-xs text-white"
+                        >
                           {ownerName.slice(0, 2).toUpperCase()}
                         </AvatarFallback>
                       </Avatar>

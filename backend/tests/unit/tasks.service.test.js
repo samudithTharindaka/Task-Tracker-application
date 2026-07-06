@@ -9,6 +9,7 @@ const tasksService = require('../../src/modules/tasks/tasks.service');
 
 const owner = { id: 'user-1', role: 'USER' };
 const admin = { id: 'admin-1', role: 'ADMIN' };
+const OWNER_INCLUDE = { owner: { select: { id: true, email: true } } };
 
 describe('listTasks', () => {
   it('runs findMany and count with the given odata query and returns both', async () => {
@@ -24,6 +25,7 @@ describe('listTasks', () => {
       orderBy: odataQuery.orderBy,
       skip: 0,
       take: 20,
+      include: OWNER_INCLUDE,
     });
     expect(prisma.task.count).toHaveBeenCalledWith({ where: odataQuery.where });
     expect(result).toEqual({ items, count: 1 });
@@ -73,7 +75,10 @@ describe('createTask', () => {
     const result = await tasksService.createTask(owner, data);
 
     expect(assertProjectAccess).toHaveBeenCalledWith(owner, 'project-1');
-    expect(prisma.task.create).toHaveBeenCalledWith({ data: { ...data, ownerId: owner.id } });
+    expect(prisma.task.create).toHaveBeenCalledWith({
+      data: { ...data, ownerId: owner.id },
+      include: OWNER_INCLUDE,
+    });
     expect(emitTaskEvent).toHaveBeenCalledWith('task:created', created);
     expect(result).toBe(created);
   });
@@ -83,6 +88,17 @@ describe('createTask', () => {
 
     await expect(tasksService.createTask(owner, { projectId: 'not-mine' })).rejects.toMatchObject({ statusCode: 404 });
     expect(prisma.task.create).not.toHaveBeenCalled();
+  });
+
+  it('passes a provided label straight through to prisma', async () => {
+    const data = { title: 'x', dueDate: new Date(), projectId: 'project-1', label: 'QA' };
+    prisma.task.create.mockResolvedValue({ id: 'task-1', ...data, ownerId: owner.id });
+
+    await tasksService.createTask(owner, data);
+
+    expect(prisma.task.create).toHaveBeenCalledWith(
+      expect.objectContaining({ data: expect.objectContaining({ label: 'QA' }) }),
+    );
   });
 });
 
@@ -107,7 +123,11 @@ describe('updateTask', () => {
     const result = await tasksService.updateTask(owner, 'task-1', { status: 'DONE' });
 
     expect(assertProjectAccess).not.toHaveBeenCalled();
-    expect(prisma.task.update).toHaveBeenCalledWith({ where: { id: 'task-1' }, data: { status: 'DONE' } });
+    expect(prisma.task.update).toHaveBeenCalledWith({
+      where: { id: 'task-1' },
+      data: { status: 'DONE' },
+      include: OWNER_INCLUDE,
+    });
     expect(emitTaskEvent).toHaveBeenCalledWith('task:updated', updated);
     expect(result).toBe(updated);
   });

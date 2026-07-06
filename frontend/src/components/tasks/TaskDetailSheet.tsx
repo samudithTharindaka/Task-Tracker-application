@@ -8,6 +8,7 @@ import { useTasksStore } from '@/store/tasksStore'
 import { useTaskExtrasStore } from '@/lib/mock/taskExtrasStore'
 import { useAuthStore } from '@/store/authStore'
 import { getApiErrorMessage } from '@/lib/api/client'
+import { ownerDisplayName } from '@/lib/ownerDisplay'
 import { confirmAction, notifyError, notifySuccess } from '@/lib/toast'
 import type { Task } from '@/types/task'
 
@@ -15,7 +16,6 @@ export function TaskDetailSheet({ task, onClose }: { task: Task | null; onClose:
   const updateTask = useTasksStore((s) => s.updateTask)
   const deleteTask = useTasksStore((s) => s.deleteTask)
   const extras = useTaskExtrasStore((s) => (task ? s.getExtras(task.id) : null))
-  const setLabel = useTaskExtrasStore((s) => s.setLabel)
   const addComment = useTaskExtrasStore((s) => s.addComment)
   const removeExtras = useTaskExtrasStore((s) => s.removeExtras)
   const currentUser = useAuthStore((s) => s.user)
@@ -31,29 +31,19 @@ export function TaskDetailSheet({ task, onClose }: { task: Task | null; onClose:
 
   if (!task || !extras) return null
 
-  // The backend always sets ownerId to whoever created the task and never
-  // lets it change (updateTaskSchema has no ownerId field) — and USER-role
-  // task listings are always server-scoped to the caller's own tasks, so a
-  // visible task's owner is the current user unless we're an admin looking
-  // at someone else's (rare; falls back to the decorative mock identity).
-  const ownerName = task.ownerId === currentUser?.id ? (currentUserEmail ?? 'You') : extras.assignee.name
-
   const fields: TaskFieldsValue = {
-    label: extras.label,
+    label: task.label,
     status: task.status,
     dueDate: task.dueDate.slice(0, 10),
-    ownerName,
+    ownerName: ownerDisplayName(task, currentUser),
     projectId: task.projectId,
   }
 
   async function handleFieldsChange(patch: Partial<TaskFieldsValue>) {
     if (!task) return
-    if (patch.label !== undefined) {
-      setLabel(task.id, patch.label)
-      notifySuccess('Label updated', `Set to ${patch.label}`)
-    }
 
-    const realPatch: { status?: Task['status']; dueDate?: string; projectId?: string } = {}
+    const realPatch: { status?: Task['status']; label?: Task['label']; dueDate?: string; projectId?: string } = {}
+    if (patch.label !== undefined) realPatch.label = patch.label
     if (patch.status !== undefined) realPatch.status = patch.status
     if (patch.dueDate !== undefined) realPatch.dueDate = patch.dueDate
     if (patch.projectId !== undefined) realPatch.projectId = patch.projectId

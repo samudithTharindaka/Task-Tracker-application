@@ -21,7 +21,6 @@ import { StatusStackedBarChart } from '@/components/dashboard/StatusStackedBarCh
 import { useProjectsStore } from '@/store/projectsStore'
 import { useTasksStore } from '@/store/tasksStore'
 import { useDashboardStore, type StatusCounts } from '@/store/dashboardStore'
-import { useTaskExtrasStore } from '@/lib/mock/taskExtrasStore'
 import { getApiErrorMessage } from '@/lib/api/client'
 import { notifyError, notifySuccess } from '@/lib/toast'
 
@@ -36,8 +35,6 @@ export function HomePage() {
 
   const breakdownByProject = useDashboardStore((s) => s.breakdownByProject)
   const fetchBreakdown = useDashboardStore((s) => s.fetchBreakdown)
-
-  const getExtras = useTaskExtrasStore((s) => s.getExtras)
 
   const [activeTaskId, setActiveTaskId] = useState<string | null>(null)
   const [createProjectOpen, setCreateProjectOpen] = useState(false)
@@ -158,7 +155,6 @@ export function HomePage() {
               </TableHeader>
               <TableBody>
                 {inProgressTasks.map((task) => {
-                  const extras = getExtras(task.id)
                   return (
                     <TableRow key={task.id}>
                       <TableCell className="max-w-xs">
@@ -166,7 +162,7 @@ export function HomePage() {
                         <p className="truncate text-xs text-muted-foreground">{task.description || 'No description'}</p>
                       </TableCell>
                       <TableCell>
-                        <LabelBadge label={extras.label} />
+                        <LabelBadge label={task.label} />
                       </TableCell>
                       <TableCell className="text-muted-foreground">{format(new Date(task.dueDate), 'M/d/yy')}</TableCell>
                       <TableCell>
