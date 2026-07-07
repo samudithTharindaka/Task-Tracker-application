@@ -11,18 +11,22 @@ import { notifyError, notifySuccess } from '@/lib/toast'
 import { BOARD_COLUMNS, type TaskStatus } from '@/types/task'
 
 export function BoardPage() {
-  const tasks = useTasksStore((s) => s.tasks)
+  const columns = useTasksStore((s) => s.columns)
   const moveTask = useTasksStore((s) => s.moveTask)
-  const fetchTasks = useTasksStore((s) => s.fetchTasks)
+  const fetchColumn = useTasksStore((s) => s.fetchColumn)
+  const loadMoreColumn = useTasksStore((s) => s.loadMoreColumn)
   const currentProjectId = useProjectsStore((s) => s.currentProjectId)
   const [activeTaskId, setActiveTaskId] = useState<string | null>(null)
-  const activeTask = tasks.find((t) => t.id === activeTaskId) ?? null
+
+  const allTasks = Object.values(columns).flatMap((c) => c.tasks)
+  const activeTask = allTasks.find((t) => t.id === activeTaskId) ?? null
 
   useEffect(() => {
-    if (currentProjectId) {
-      fetchTasks(currentProjectId).catch((error) => notifyError('Could not load tasks', getApiErrorMessage(error)))
-    }
-  }, [currentProjectId, fetchTasks])
+    if (!currentProjectId) return
+    BOARD_COLUMNS.forEach(({ id }) => {
+      fetchColumn(currentProjectId, id).catch((error) => notifyError('Could not load tasks', getApiErrorMessage(error)))
+    })
+  }, [currentProjectId, fetchColumn])
 
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 6 } }))
 
@@ -31,7 +35,7 @@ export function BoardPage() {
     if (!over) return
 
     const status = over.id as TaskStatus
-    const task = tasks.find((t) => t.id === active.id)
+    const task = allTasks.find((t) => t.id === active.id)
     if (!task || task.status === status) return
 
     moveTask(task.id, status)
@@ -50,7 +54,16 @@ export function BoardPage() {
               key={id}
               id={id}
               label={label}
-              tasks={tasks.filter((t) => t.status === id)}
+              tasks={columns[id].tasks}
+              pagination={columns[id].pagination}
+              isLoadingMore={columns[id].isLoadingMore}
+              onLoadMore={() => {
+                if (currentProjectId) {
+                  loadMoreColumn(currentProjectId, id).catch((error) =>
+                    notifyError('Could not load more tasks', getApiErrorMessage(error)),
+                  )
+                }
+              }}
               onTaskClick={(task) => setActiveTaskId(task.id)}
             />
           ))}

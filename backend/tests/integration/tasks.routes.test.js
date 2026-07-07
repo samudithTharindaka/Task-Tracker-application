@@ -30,18 +30,71 @@ describe('auth guard', () => {
 });
 
 describe('GET /api/tasks', () => {
-  it('returns an OData envelope and forces ownerId scoping for a USER', async () => {
+  it('returns a paginated envelope and forces ownerId scoping for a USER', async () => {
     prisma.task.findMany.mockResolvedValue([{ id: 'task-1', ownerId: owner.id }]);
     prisma.task.count.mockResolvedValue(1);
 
     const res = await request(app).get('/api/tasks').set('Authorization', ownerAuth());
 
     expect(res.status).toBe(200);
-    expect(res.body['@odata.count']).toBe(1);
+    expect(res.body.pagination).toEqual({
+      page: 1,
+      limit: 20,
+      totalItems: 1,
+      totalPages: 1,
+      hasNextPage: false,
+      hasPreviousPage: false,
+      nextPage: null,
+      previousPage: null,
+    });
     expect(res.body.value).toHaveLength(1);
     expect(prisma.task.findMany).toHaveBeenCalledWith(
       expect.objectContaining({ where: expect.objectContaining({ ownerId: owner.id }) }),
     );
+  });
+
+  it('honors page/limit', async () => {
+    prisma.task.findMany.mockResolvedValue([]);
+    prisma.task.count.mockResolvedValue(47);
+
+    const res = await request(app).get('/api/tasks?page=2&limit=10').set('Authorization', ownerAuth());
+
+    expect(res.status).toBe(200);
+    expect(prisma.task.findMany).toHaveBeenCalledWith(expect.objectContaining({ skip: 10, take: 10 }));
+    expect(res.body.pagination).toEqual({
+      page: 2,
+      limit: 10,
+      totalItems: 47,
+      totalPages: 5,
+      hasNextPage: true,
+      hasPreviousPage: true,
+      nextPage: 3,
+      previousPage: 1,
+    });
+  });
+
+  it('rejects an invalid page with 400', async () => {
+    const res = await request(app).get('/api/tasks?page=0').set('Authorization', ownerAuth());
+    expect(res.status).toBe(400);
+  });
+
+  it('supports combining status and label filters', async () => {
+    prisma.task.findMany.mockResolvedValue([]);
+    prisma.task.count.mockResolvedValue(0);
+
+    const res = await request(app)
+      .get("/api/tasks?$filter=status eq 'TODO' and label eq 'QA'")
+      .set('Authorization', ownerAuth());
+
+    expect(res.status).toBe(200);
+    expect(prisma.task.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({ where: expect.objectContaining({ status: 'TODO', label: 'QA' }) }),
+    );
+  });
+
+  it('rejects an invalid label value with 400', async () => {
+    const res = await request(app).get("/api/tasks?$filter=label eq 'Not A Label'").set('Authorization', ownerAuth());
+    expect(res.status).toBe(400);
   });
 
   it("ignores a USER's attempt to filter by someone else's ownerId", async () => {

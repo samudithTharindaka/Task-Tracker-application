@@ -67,3 +67,14 @@ export const STATUS_BADGE_STYLES: Record<TaskStatus, { label: string; className:
 export interface TaskExtras {
   comments: Comment[]
 }
+
+export interface Pagination {
+  page: number
+  limit: number
+  totalItems: number
+  totalPages: number
+  hasNextPage: boolean
+  hasPreviousPage: boolean
+  nextPage: number | null
+  previousPage: number | null
+}

@@ -97,6 +97,19 @@ const openapiSpec = {
           name: { type: 'string', example: 'My Board' },
         },
       },
+      Pagination: {
+        type: 'object',
+        properties: {
+          page: { type: 'integer', example: 2 },
+          limit: { type: 'integer', example: 10 },
+          totalItems: { type: 'integer', example: 47 },
+          totalPages: { type: 'integer', example: 5 },
+          hasNextPage: { type: 'boolean' },
+          hasPreviousPage: { type: 'boolean' },
+          nextPage: { type: 'integer', nullable: true, example: 3 },
+          previousPage: { type: 'integer', nullable: true, example: 1 },
+        },
+      },
       ProjectListResponse: {
         type: 'object',
         properties: {
@@ -104,6 +117,7 @@ const openapiSpec = {
             type: 'array',
             items: { $ref: '#/components/schemas/Project' },
           },
+          pagination: { $ref: '#/components/schemas/Pagination' },
         },
       },
       RegisterRequest: {
@@ -170,12 +184,11 @@ const openapiSpec = {
       TaskListResponse: {
         type: 'object',
         properties: {
-          '@odata.context': { type: 'string', example: '/api/tasks' },
-          '@odata.count': { type: 'integer', example: 6 },
           value: {
             type: 'array',
             items: { $ref: '#/components/schemas/Task' },
           },
+          pagination: { $ref: '#/components/schemas/Pagination' },
         },
       },
       AiChatRequest: {
@@ -282,7 +295,7 @@ const openapiSpec = {
     '/tasks': {
       get: {
         tags: ['Tasks'],
-        summary: 'List tasks (OData-style filter/sort/paginate)',
+        summary: 'List tasks (OData-style filter/sort, page/limit pagination)',
         description:
           'USER role is always restricted to their own tasks server-side, regardless of any ownerId ' +
           'filter passed in $filter. ADMIN role may see and filter across all tasks.',
@@ -296,16 +309,16 @@ const openapiSpec = {
             example: "status eq 'DONE' and ownerId eq 'b0138fe3-ebe5-49eb-a031-06295238f3f3'",
           },
           {
-            name: '$top',
+            name: 'page',
+            in: 'query',
+            description: '1-indexed page number (default 1)',
+            schema: { type: 'integer', default: 1 },
+          },
+          {
+            name: 'limit',
             in: 'query',
             description: 'Page size (max 100, default 20)',
             schema: { type: 'integer', default: 20 },
-          },
-          {
-            name: '$skip',
-            in: 'query',
-            description: 'Offset (default 0)',
-            schema: { type: 'integer', default: 0 },
           },
           {
             name: '$orderby',
@@ -394,13 +407,28 @@ const openapiSpec = {
     '/projects': {
       get: {
         tags: ['Projects'],
-        summary: 'List projects (own projects for USER, all for ADMIN)',
+        summary: 'List projects, paginated (own projects for USER, all for ADMIN)',
         security: [{ bearerAuth: [] }],
+        parameters: [
+          {
+            name: 'page',
+            in: 'query',
+            description: '1-indexed page number (default 1)',
+            schema: { type: 'integer', default: 1 },
+          },
+          {
+            name: 'limit',
+            in: 'query',
+            description: 'Page size (max 100, default 20)',
+            schema: { type: 'integer', default: 20 },
+          },
+        ],
         responses: {
           200: {
-            description: 'Project list',
+            description: 'Paged project list',
             content: { 'application/json': { schema: { $ref: '#/components/schemas/ProjectListResponse' } } },
           },
+          400: errorResponse('Invalid query parameters'),
           401: errorResponse('Missing or invalid access token'),
         },
       },

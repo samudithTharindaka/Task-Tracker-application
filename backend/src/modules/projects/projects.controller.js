@@ -1,5 +1,6 @@
 const { z } = require('zod');
 const projectsService = require('./projects.service');
+const { buildPaginatedResponse } = require('../../utils/pagination-response.util');
 
 const idParamSchema = z.object({
   id: z.string().uuid('Invalid project id'),
@@ -11,8 +12,9 @@ const createProjectSchema = z.object({
 
 async function list(req, res, next) {
   try {
-    const projects = await projectsService.listProjects(req.user);
-    res.status(200).json({ value: projects });
+    const { items, count } = await projectsService.listProjects(req.user, req.pagination);
+    const { page, limit } = req.pagination;
+    res.status(200).json(buildPaginatedResponse(items, { page, limit, totalItems: count }));
   } catch (err) {
     next(err);
   }

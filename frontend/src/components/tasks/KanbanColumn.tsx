@@ -1,9 +1,10 @@
 import { useDroppable } from '@dnd-kit/core'
-import { MoreHorizontalIcon } from 'lucide-react'
+import { Loader2Icon, MoreHorizontalIcon } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { Button } from '@/components/ui/button'
 import { TaskCard } from '@/components/tasks/TaskCard'
 import { useTaskExtrasStore } from '@/lib/mock/taskExtrasStore'
-import type { Task, TaskStatus } from '@/types/task'
+import type { Pagination, Task, TaskStatus } from '@/types/task'
 
 const COLUMN_ACCENT: Record<TaskStatus, string> = {
   TODO: 'border-foreground',
@@ -16,11 +17,17 @@ export function KanbanColumn({
   id,
   label,
   tasks,
+  pagination,
+  isLoadingMore,
+  onLoadMore,
   onTaskClick,
 }: {
   id: TaskStatus
   label: string
   tasks: Task[]
+  pagination: Pagination | null
+  isLoadingMore: boolean
+  onLoadMore: () => void
   onTaskClick: (task: Task) => void
 }) {
   const { setNodeRef, isOver } = useDroppable({ id })
@@ -32,7 +39,7 @@ export function KanbanColumn({
         <div className="flex items-center gap-2">
           <span className="text-xs font-bold tracking-wide uppercase">{label}</span>
           <span className="flex size-5 items-center justify-center rounded-full bg-secondary text-xs font-medium">
-            {tasks.length}
+            {pagination?.totalItems ?? tasks.length}
           </span>
         </div>
         <button className="text-muted-foreground hover:text-foreground" aria-label="Column options">
@@ -51,6 +58,24 @@ export function KanbanColumn({
           <TaskCard key={task.id} task={task} extras={getExtras(task.id)} onClick={() => onTaskClick(task)} />
         ))}
       </div>
+
+      {pagination?.hasNextPage && (
+        <Button
+          variant="outline"
+          size="sm"
+          className="mt-3 w-full"
+          disabled={isLoadingMore}
+          onClick={onLoadMore}
+        >
+          {isLoadingMore ? (
+            <>
+              <Loader2Icon className="size-3.5 animate-spin" /> Loading…
+            </>
+          ) : (
+            `Load more (${pagination.totalItems - tasks.length} left)`
+          )}
+        </Button>
+      )}
     </div>
   )
 }
