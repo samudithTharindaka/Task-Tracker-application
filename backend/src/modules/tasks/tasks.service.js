@@ -3,6 +3,7 @@ const { ApiError } = require('../../middleware/error.middleware');
 const { isOwnerOrAdmin } = require('../users/users.service');
 const { assertProjectAccess } = require('../projects/projects.service');
 const { emitTaskEvent } = require('../../sockets');
+const logger = require('../../config/logger');
 
 // Every read embeds the real owner's id/email so the frontend can show the
 // task's actual owner (Board avatar, List "User" column) instead of falling
@@ -28,6 +29,7 @@ async function getTaskById(user, id) {
   }
 
   if (!isOwnerOrAdmin(user, task.ownerId)) {
+    logger.warn({ userId: user.id, taskId: id, ownerId: task.ownerId }, 'Forbidden: task access denied');
     throw new ApiError(403, 'FORBIDDEN', 'You do not have access to this task');
   }
 
@@ -44,6 +46,8 @@ async function createTask(user, data) {
 
   emitTaskEvent('task:created', task);
 
+  logger.info({ userId: user.id, taskId: task.id, projectId: task.projectId }, 'Task created');
+
   return task;
 }
 
@@ -55,6 +59,7 @@ async function updateTask(user, id, data) {
   }
 
   if (!isOwnerOrAdmin(user, existing.ownerId)) {
+    logger.warn({ userId: user.id, taskId: id, ownerId: existing.ownerId }, 'Forbidden: task update denied');
     throw new ApiError(403, 'FORBIDDEN', 'You do not have access to this task');
   }
 
@@ -65,6 +70,8 @@ async function updateTask(user, id, data) {
   const task = await prisma.task.update({ where: { id }, data, include: OWNER_INCLUDE });
 
   emitTaskEvent('task:updated', task);
+
+  logger.info({ userId: user.id, taskId: task.id, fields: Object.keys(data) }, 'Task updated');
 
   return task;
 }
@@ -77,12 +84,15 @@ async function deleteTask(user, id) {
   }
 
   if (!isOwnerOrAdmin(user, existing.ownerId)) {
+    logger.warn({ userId: user.id, taskId: id, ownerId: existing.ownerId }, 'Forbidden: task delete denied');
     throw new ApiError(403, 'FORBIDDEN', 'You do not have access to this task');
   }
 
   await prisma.task.delete({ where: { id } });
 
   emitTaskEvent('task:deleted', existing);
+
+  logger.info({ userId: user.id, taskId: id }, 'Task deleted');
 
   return existing;
 }

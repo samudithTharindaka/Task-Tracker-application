@@ -1,10 +1,12 @@
 jest.mock('../../src/config/prisma');
 jest.mock('bcrypt');
 jest.mock('jsonwebtoken');
+jest.mock('../../src/config/logger');
 
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 const prisma = require('../../src/config/prisma');
+const logger = require('../../src/config/logger');
 const { ApiError } = require('../../src/middleware/error.middleware');
 const authService = require('../../src/modules/auth/auth.service');
 
@@ -43,16 +45,22 @@ describe('register', () => {
 describe('login', () => {
   const storedUser = { id: 'user-1', email: 'a@example.com', password: 'hashed', role: 'USER', createdAt: new Date() };
 
-  it('rejects when no user matches the email', async () => {
+  it('rejects when no user matches the email, logging a warning without the password', async () => {
     prisma.user.findUnique.mockResolvedValue(null);
 
-    await expect(authService.login({ email: 'nobody@example.com', password: 'x' })).rejects.toMatchObject({
+    await expect(authService.login({ email: 'nobody@example.com', password: 'sekrit-pw-1' })).rejects.toMatchObject({
       statusCode: 401,
       code: 'UNAUTHENTICATED',
     });
+    expect(logger.warn).toHaveBeenCalledWith(
+      { email: 'nobody@example.com' },
+      'Login failed: no user with this email',
+    );
+    const loggedArgs = logger.warn.mock.calls.flat();
+    expect(JSON.stringify(loggedArgs)).not.toContain('sekrit-pw-1');
   });
 
-  it('rejects an incorrect password', async () => {
+  it('rejects an incorrect password, logging a warning without the password', async () => {
     prisma.user.findUnique.mockResolvedValue(storedUser);
     bcrypt.compare.mockResolvedValue(false);
 
@@ -60,9 +68,15 @@ describe('login', () => {
       statusCode: 401,
       code: 'UNAUTHENTICATED',
     });
+    expect(logger.warn).toHaveBeenCalledWith(
+      { userId: storedUser.id, email: storedUser.email },
+      'Login failed: incorrect password',
+    );
+    const loggedArgs = logger.warn.mock.calls.flat();
+    expect(JSON.stringify(loggedArgs)).not.toContain('wrong');
   });
 
-  it('returns a public user plus a token pair on success', async () => {
+  it('returns a public user plus a token pair on success, logging the success without the tokens', async () => {
     prisma.user.findUnique.mockResolvedValue(storedUser);
     bcrypt.compare.mockResolvedValue(true);
     jwt.sign.mockReturnValueOnce('access-token').mockReturnValueOnce('refresh-token');
@@ -75,6 +89,13 @@ describe('login', () => {
       accessToken: 'access-token',
       refreshToken: 'refresh-token',
     });
+    expect(logger.info).toHaveBeenCalledWith(
+      { userId: storedUser.id, email: storedUser.email },
+      'Login succeeded',
+    );
+    const loggedArgs = logger.info.mock.calls.flat();
+    expect(JSON.stringify(loggedArgs)).not.toContain('access-token');
+    expect(JSON.stringify(loggedArgs)).not.toContain('refresh-token');
   });
 });
 

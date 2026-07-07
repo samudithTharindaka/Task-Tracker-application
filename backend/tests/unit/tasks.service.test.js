@@ -1,10 +1,12 @@
 jest.mock('../../src/config/prisma');
 jest.mock('../../src/modules/projects/projects.service');
 jest.mock('../../src/sockets');
+jest.mock('../../src/config/logger');
 
 const prisma = require('../../src/config/prisma');
 const { assertProjectAccess } = require('../../src/modules/projects/projects.service');
 const { emitTaskEvent } = require('../../src/sockets');
+const logger = require('../../src/config/logger');
 const tasksService = require('../../src/modules/tasks/tasks.service');
 
 const owner = { id: 'user-1', role: 'USER' };
@@ -42,13 +44,17 @@ describe('getTaskById', () => {
     });
   });
 
-  it('throws 403 when a non-owner, non-admin requests the task', async () => {
+  it('throws 403 when a non-owner, non-admin requests the task, logging a warning', async () => {
     prisma.task.findUnique.mockResolvedValue({ id: 'task-1', ownerId: 'someone-else' });
 
     await expect(tasksService.getTaskById(owner, 'task-1')).rejects.toMatchObject({
       statusCode: 403,
       code: 'FORBIDDEN',
     });
+    expect(logger.warn).toHaveBeenCalledWith(
+      { userId: owner.id, taskId: 'task-1', ownerId: 'someone-else' },
+      'Forbidden: task access denied',
+    );
   });
 
   it('returns the task for its owner', async () => {
@@ -80,6 +86,10 @@ describe('createTask', () => {
       include: OWNER_INCLUDE,
     });
     expect(emitTaskEvent).toHaveBeenCalledWith('task:created', created);
+    expect(logger.info).toHaveBeenCalledWith(
+      { userId: owner.id, taskId: created.id, projectId: created.projectId },
+      'Task created',
+    );
     expect(result).toBe(created);
   });
 
@@ -109,10 +119,14 @@ describe('updateTask', () => {
     await expect(tasksService.updateTask(owner, 'missing', { title: 'x' })).rejects.toMatchObject({ statusCode: 404 });
   });
 
-  it('throws 403 for a non-owner, non-admin', async () => {
+  it('throws 403 for a non-owner, non-admin, logging a warning', async () => {
     prisma.task.findUnique.mockResolvedValue({ id: 'task-1', ownerId: 'someone-else' });
 
     await expect(tasksService.updateTask(owner, 'task-1', { title: 'x' })).rejects.toMatchObject({ statusCode: 403 });
+    expect(logger.warn).toHaveBeenCalledWith(
+      { userId: owner.id, taskId: 'task-1', ownerId: 'someone-else' },
+      'Forbidden: task update denied',
+    );
   });
 
   it('updates without re-checking project access when projectId is unchanged', async () => {
@@ -129,6 +143,10 @@ describe('updateTask', () => {
       include: OWNER_INCLUDE,
     });
     expect(emitTaskEvent).toHaveBeenCalledWith('task:updated', updated);
+    expect(logger.info).toHaveBeenCalledWith(
+      { userId: owner.id, taskId: updated.id, fields: ['status'] },
+      'Task updated',
+    );
     expect(result).toBe(updated);
   });
 
@@ -149,10 +167,14 @@ describe('deleteTask', () => {
     await expect(tasksService.deleteTask(owner, 'missing')).rejects.toMatchObject({ statusCode: 404 });
   });
 
-  it('throws 403 for a non-owner, non-admin', async () => {
+  it('throws 403 for a non-owner, non-admin, logging a warning', async () => {
     prisma.task.findUnique.mockResolvedValue({ id: 'task-1', ownerId: 'someone-else' });
 
     await expect(tasksService.deleteTask(owner, 'task-1')).rejects.toMatchObject({ statusCode: 403 });
+    expect(logger.warn).toHaveBeenCalledWith(
+      { userId: owner.id, taskId: 'task-1', ownerId: 'someone-else' },
+      'Forbidden: task delete denied',
+    );
   });
 
   it('deletes the task, emits an event, and returns the deleted task', async () => {
@@ -163,6 +185,7 @@ describe('deleteTask', () => {
 
     expect(prisma.task.delete).toHaveBeenCalledWith({ where: { id: 'task-1' } });
     expect(emitTaskEvent).toHaveBeenCalledWith('task:deleted', existing);
+    expect(logger.info).toHaveBeenCalledWith({ userId: owner.id, taskId: 'task-1' }, 'Task deleted');
     expect(result).toBe(existing);
   });
 });

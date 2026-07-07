@@ -1,3 +1,6 @@
+jest.mock('../../src/config/logger');
+
+const logger = require('../../src/config/logger');
 const { ApiError, notFoundHandler, errorHandler } = require('../../src/middleware/error.middleware');
 
 function mockRes() {
@@ -75,18 +78,26 @@ describe('errorHandler', () => {
     });
   });
 
-  it('falls back to a 500 for anything unrecognized', () => {
-    const consoleSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+  it('falls back to a 500 for anything unrecognized and logs it at error level', () => {
     const res = mockRes();
+    const err = new Error('boom');
 
-    errorHandler(new Error('boom'), {}, res, jest.fn());
+    errorHandler(err, { method: 'GET', path: '/api/tasks' }, res, jest.fn());
 
     expect(res.status).toHaveBeenCalledWith(500);
     expect(res.json).toHaveBeenCalledWith({
       error: { message: 'Internal server error', code: 'INTERNAL_ERROR' },
     });
-    expect(consoleSpy).toHaveBeenCalled();
+    expect(logger.error).toHaveBeenCalledWith(
+      { err, method: 'GET', path: '/api/tasks' },
+      'Unhandled error',
+    );
+  });
 
-    consoleSpy.mockRestore();
+  it('does not log expected 4xx errors (e.g. ApiError) at error level', () => {
+    const res = mockRes();
+    errorHandler(new ApiError(403, 'FORBIDDEN', 'nope'), {}, res, jest.fn());
+
+    expect(logger.error).not.toHaveBeenCalled();
   });
 });

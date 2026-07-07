@@ -1,3 +1,5 @@
+const logger = require('../config/logger');
+
 class ApiError extends Error {
   constructor(statusCode, code, message) {
     super(message);
@@ -40,7 +42,10 @@ function errorHandler(err, req, res, next) {
     });
   }
 
-  console.error(err);
+  // Only unexpected/500+ failures are logged at error level here — expected
+  // 4xx client errors (validation, not-found, forbidden, conflict) are
+  // handled above and return before reaching this point.
+  logger.error({ err, method: req.method, path: req.path }, 'Unhandled error');
   return res.status(500).json({
     error: { message: 'Internal server error', code: 'INTERNAL_ERROR' },
   });

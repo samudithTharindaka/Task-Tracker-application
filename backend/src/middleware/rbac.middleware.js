@@ -1,4 +1,5 @@
 const { ApiError } = require('./error.middleware');
+const logger = require('../config/logger');
 
 function authorize(allowedRoles) {
   return (req, res, next) => {
@@ -7,6 +8,10 @@ function authorize(allowedRoles) {
     }
 
     if (!allowedRoles.includes(req.user.role)) {
+      logger.warn(
+        { userId: req.user.id, role: req.user.role, allowedRoles, path: req.path },
+        'Forbidden: insufficient role',
+      );
       return next(new ApiError(403, 'FORBIDDEN', 'Insufficient permissions'));
     }
 
