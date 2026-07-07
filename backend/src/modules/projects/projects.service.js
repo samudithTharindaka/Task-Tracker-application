@@ -1,6 +1,7 @@
 const prisma = require('../../config/prisma');
 const { ApiError } = require('../../middleware/error.middleware');
 const { isOwnerOrAdmin } = require('../users/users.service');
+const logger = require('../../config/logger');
 
 // `pagination` is optional — internal callers (e.g. ai.tools.js) that just
 // want every project the caller can see omit it and get an unbounded list;
@@ -26,6 +27,7 @@ async function getProjectById(user, id) {
   }
 
   if (!isOwnerOrAdmin(user, project.ownerId)) {
+    logger.warn({ userId: user.id, projectId: id, ownerId: project.ownerId }, 'Forbidden: project access denied');
     throw new ApiError(403, 'FORBIDDEN', 'You do not have access to this project');
   }
 
@@ -33,17 +35,28 @@ async function getProjectById(user, id) {
 }
 
 async function createProject(user, { name }) {
-  return prisma.project.create({ data: { name, ownerId: user.id } });
+  const project = await prisma.project.create({ data: { name, ownerId: user.id } });
+
+  logger.info({ userId: user.id, projectId: project.id }, 'Project created');
+
+  return project;
 }
 
 async function updateProject(user, id, { name }) {
   await getProjectById(user, id);
-  return prisma.project.update({ where: { id }, data: { name } });
+  const project = await prisma.project.update({ where: { id }, data: { name } });
+
+  logger.info({ userId: user.id, projectId: id }, 'Project updated');
+
+  return project;
 }
 
 async function deleteProject(user, id) {
   const project = await getProjectById(user, id);
   await prisma.project.delete({ where: { id } });
+
+  logger.info({ userId: user.id, projectId: id }, 'Project deleted');
+
   return project;
 }
 

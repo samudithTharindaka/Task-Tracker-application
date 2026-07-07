@@ -1,6 +1,8 @@
 jest.mock('../../src/config/prisma');
+jest.mock('../../src/config/logger');
 
 const prisma = require('../../src/config/prisma');
+const logger = require('../../src/config/logger');
 const projectsService = require('../../src/modules/projects/projects.service');
 
 const owner = { id: 'user-1', role: 'USER' };
@@ -60,13 +62,17 @@ describe('getProjectById', () => {
     });
   });
 
-  it('throws 403 for a non-owner, non-admin', async () => {
+  it('throws 403 for a non-owner, non-admin, logging a warning', async () => {
     prisma.project.findUnique.mockResolvedValue({ id: 'project-1', ownerId: 'someone-else' });
 
     await expect(projectsService.getProjectById(owner, 'project-1')).rejects.toMatchObject({
       statusCode: 403,
       code: 'FORBIDDEN',
     });
+    expect(logger.warn).toHaveBeenCalledWith(
+      { userId: owner.id, projectId: 'project-1', ownerId: 'someone-else' },
+      'Forbidden: project access denied',
+    );
   });
 
   it('returns the project for its owner', async () => {
@@ -92,6 +98,7 @@ describe('createProject', () => {
     const result = await projectsService.createProject(owner, { name: 'My Board' });
 
     expect(prisma.project.create).toHaveBeenCalledWith({ data: { name: 'My Board', ownerId: owner.id } });
+    expect(logger.info).toHaveBeenCalledWith({ userId: owner.id, projectId: created.id }, 'Project created');
     expect(result).toBe(created);
   });
 });
@@ -114,6 +121,7 @@ describe('updateProject', () => {
     const result = await projectsService.updateProject(owner, 'project-1', { name: 'Renamed' });
 
     expect(prisma.project.update).toHaveBeenCalledWith({ where: { id: 'project-1' }, data: { name: 'Renamed' } });
+    expect(logger.info).toHaveBeenCalledWith({ userId: owner.id, projectId: 'project-1' }, 'Project updated');
     expect(result).toBe(updated);
   });
 });
@@ -133,6 +141,7 @@ describe('deleteProject', () => {
     const result = await projectsService.deleteProject(owner, 'project-1');
 
     expect(prisma.project.delete).toHaveBeenCalledWith({ where: { id: 'project-1' } });
+    expect(logger.info).toHaveBeenCalledWith({ userId: owner.id, projectId: 'project-1' }, 'Project deleted');
     expect(result).toBe(existing);
   });
 });

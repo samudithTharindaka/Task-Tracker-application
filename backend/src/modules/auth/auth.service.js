@@ -2,6 +2,7 @@ const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 const prisma = require('../../config/prisma');
 const env = require('../../config/env');
+const logger = require('../../config/logger');
 const { ApiError } = require('../../middleware/error.middleware');
 
 const SALT_ROUNDS = 10;
@@ -42,17 +43,21 @@ async function login({ email, password }) {
   const user = await prisma.user.findUnique({ where: { email } });
 
   if (!user) {
+    logger.warn({ email }, 'Login failed: no user with this email');
     throw new ApiError(401, 'UNAUTHENTICATED', 'Invalid email or password');
   }
 
   const passwordMatches = await bcrypt.compare(password, user.password);
 
   if (!passwordMatches) {
+    logger.warn({ userId: user.id, email }, 'Login failed: incorrect password');
     throw new ApiError(401, 'UNAUTHENTICATED', 'Invalid email or password');
   }
 
   const accessToken = signAccessToken(user);
   const refreshToken = signRefreshToken(user);
+
+  logger.info({ userId: user.id, email }, 'Login succeeded');
 
   return { user: toPublicUser(user), accessToken, refreshToken };
 }
