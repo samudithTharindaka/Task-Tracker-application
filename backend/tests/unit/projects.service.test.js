@@ -9,24 +9,44 @@ const admin = { id: 'admin-1', role: 'ADMIN' };
 describe('listProjects', () => {
   it('scopes to the caller for a USER', async () => {
     prisma.project.findMany.mockResolvedValue([]);
+    prisma.project.count.mockResolvedValue(0);
 
     await projectsService.listProjects(owner);
 
     expect(prisma.project.findMany).toHaveBeenCalledWith({
       where: { ownerId: owner.id },
       orderBy: { createdAt: 'asc' },
+      skip: undefined,
+      take: undefined,
     });
+    expect(prisma.project.count).toHaveBeenCalledWith({ where: { ownerId: owner.id } });
   });
 
   it('sees everything for an ADMIN', async () => {
     prisma.project.findMany.mockResolvedValue([]);
+    prisma.project.count.mockResolvedValue(0);
 
     await projectsService.listProjects(admin);
 
     expect(prisma.project.findMany).toHaveBeenCalledWith({
       where: {},
       orderBy: { createdAt: 'asc' },
+      skip: undefined,
+      take: undefined,
     });
+  });
+
+  it('applies pagination when provided and returns items + count', async () => {
+    const items = [{ id: 'project-1' }];
+    prisma.project.findMany.mockResolvedValue(items);
+    prisma.project.count.mockResolvedValue(5);
+
+    const result = await projectsService.listProjects(owner, { skip: 20, take: 20 });
+
+    expect(prisma.project.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({ skip: 20, take: 20 }),
+    );
+    expect(result).toEqual({ items, count: 5 });
   });
 });
 

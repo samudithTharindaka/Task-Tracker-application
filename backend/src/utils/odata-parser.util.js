@@ -1,11 +1,12 @@
 const { ApiError } = require('../middleware/error.middleware');
 
-const FILTERABLE_FIELDS = ['status', 'ownerId', 'projectId'];
+const FILTERABLE_FIELDS = ['status', 'ownerId', 'projectId', 'label'];
 const ORDERABLE_FIELDS = ['title', 'status', 'dueDate', 'createdAt', 'updatedAt', 'ownerId'];
 const VALID_STATUSES = ['TODO', 'IN_PROGRESS', 'TEST', 'DONE'];
+const VALID_LABELS = ['Development', 'QA', 'UI/UX', 'Planing', 'Other', 'Dev Ops'];
 
-const DEFAULT_TOP = 20;
-const MAX_TOP = 100;
+const DEFAULT_LIMIT = 20;
+const MAX_LIMIT = 100;
 
 function stripQuotes(value) {
   const trimmed = value.trim();
@@ -48,6 +49,14 @@ function parseFilter(filterStr) {
       );
     }
 
+    if (field === 'label' && !VALID_LABELS.includes(value)) {
+      throw new ApiError(
+        400,
+        'VALIDATION_ERROR',
+        `Invalid label value "${value}". Must be one of: ${VALID_LABELS.join(', ')}`
+      );
+    }
+
     where[field] = value;
   }
 
@@ -78,27 +87,37 @@ function parseOrderBy(orderByStr) {
   });
 }
 
-function parsePositiveInt(value, paramName, fallback) {
+function parsePositiveInt(value, paramName, fallback, min = 0) {
   if (value === undefined) return fallback;
 
   const parsed = Number(value);
 
-  if (!Number.isInteger(parsed) || parsed < 0) {
-    throw new ApiError(400, 'VALIDATION_ERROR', `${paramName} must be a non-negative integer`);
+  if (!Number.isInteger(parsed) || parsed < min) {
+    throw new ApiError(400, 'VALIDATION_ERROR', `${paramName} must be an integer >= ${min}`);
   }
 
   return parsed;
 }
 
+// page/limit only — reused by plain-listing endpoints (e.g. Projects) that
+// don't need $filter/$orderby's full machinery. `page` is 1-indexed; `skip`/
+// `take` are derived from it for Prisma, and `page`/`limit` themselves are
+// carried through so the controller can build the pagination metadata block.
+function parsePagination(query) {
+  const page = parsePositiveInt(query.page, 'page', 1, 1);
+  let limit = parsePositiveInt(query.limit, 'limit', DEFAULT_LIMIT, 1);
+
+  if (limit > MAX_LIMIT) limit = MAX_LIMIT;
+
+  return { page, limit, skip: (page - 1) * limit, take: limit };
+}
+
 function parseODataQuery(query) {
   const where = parseFilter(query.$filter);
   const orderBy = parseOrderBy(query.$orderby);
-  const skip = parsePositiveInt(query.$skip, '$skip', 0);
-  let take = parsePositiveInt(query.$top, '$top', DEFAULT_TOP);
+  const { page, limit, skip, take } = parsePagination(query);
 
-  if (take > MAX_TOP) take = MAX_TOP;
-
-  return { where, orderBy, skip, take };
+  return { where, orderBy, skip, take, page, limit };
 }
 
-module.exports = { parseODataQuery };
+module.exports = { parseODataQuery, parsePagination };

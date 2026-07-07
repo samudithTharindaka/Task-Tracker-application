@@ -2,7 +2,10 @@ import { apiClient } from '@/lib/api/client'
 import type { Project } from '@/types/task'
 
 export async function listProjects(): Promise<Project[]> {
-  const { data } = await apiClient.get<{ value: Project[] }>('/api/projects')
+  // The endpoint now paginates (default page size 20) — pass a generous
+  // limit explicitly so the sidebar's project list isn't silently truncated
+  // for a user with more than the default page size.
+  const { data } = await apiClient.get<{ value: Project[] }>('/api/projects', { params: { limit: 100 } })
   return data.value
 }
 

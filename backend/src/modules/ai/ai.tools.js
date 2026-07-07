@@ -104,8 +104,10 @@ async function deleteTask(user, rawArgs) {
 }
 
 async function listProjects(user) {
-  const projects = await projectsService.listProjects(user);
-  return { projects };
+  // No pagination arg — the AI assistant should see every project the
+  // caller has access to, not just the first page.
+  const { items } = await projectsService.listProjects(user);
+  return { projects: items };
 }
 
 const TOOL_DEFINITIONS = [

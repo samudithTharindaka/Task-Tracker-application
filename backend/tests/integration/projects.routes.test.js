@@ -22,16 +22,49 @@ describe('auth guard', () => {
 });
 
 describe('GET /api/projects', () => {
-  it('returns a value array', async () => {
+  it('returns a paginated envelope', async () => {
     prisma.project.findMany.mockResolvedValue([{ id: 'project-1', name: 'My Board', ownerId: owner.id }]);
+    prisma.project.count.mockResolvedValue(1);
 
     const res = await request(app).get('/api/projects').set('Authorization', ownerAuth());
 
     expect(res.status).toBe(200);
     expect(res.body.value).toHaveLength(1);
+    expect(res.body.pagination).toEqual({
+      page: 1,
+      limit: 20,
+      totalItems: 1,
+      totalPages: 1,
+      hasNextPage: false,
+      hasPreviousPage: false,
+      nextPage: null,
+      previousPage: null,
+    });
     expect(prisma.project.findMany).toHaveBeenCalledWith(
-      expect.objectContaining({ where: { ownerId: owner.id } }),
+      expect.objectContaining({ where: { ownerId: owner.id }, skip: 0, take: 20 }),
     );
+  });
+
+  it('honors page/limit', async () => {
+    prisma.project.findMany.mockResolvedValue([]);
+    prisma.project.count.mockResolvedValue(0);
+
+    const res = await request(app)
+      .get('/api/projects?page=3&limit=5')
+      .set('Authorization', ownerAuth());
+
+    expect(res.status).toBe(200);
+    expect(prisma.project.findMany).toHaveBeenCalledWith(expect.objectContaining({ skip: 10, take: 5 }));
+  });
+
+  it('rejects an invalid page with 400', async () => {
+    const res = await request(app).get('/api/projects?page=0').set('Authorization', ownerAuth());
+    expect(res.status).toBe(400);
+  });
+
+  it('rejects an invalid limit with 400', async () => {
+    const res = await request(app).get('/api/projects?limit=-1').set('Authorization', ownerAuth());
+    expect(res.status).toBe(400);
   });
 });
 

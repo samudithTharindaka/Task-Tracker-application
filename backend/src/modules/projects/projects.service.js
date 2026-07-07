@@ -2,9 +2,20 @@ const prisma = require('../../config/prisma');
 const { ApiError } = require('../../middleware/error.middleware');
 const { isOwnerOrAdmin } = require('../users/users.service');
 
-async function listProjects(user) {
+// `pagination` is optional — internal callers (e.g. ai.tools.js) that just
+// want every project the caller can see omit it and get an unbounded list;
+// the HTTP endpoint (projects.controller.js) always passes it via
+// middleware/pagination.middleware.js.
+async function listProjects(user, pagination) {
   const where = user.role === 'ADMIN' ? {} : { ownerId: user.id };
-  return prisma.project.findMany({ where, orderBy: { createdAt: 'asc' } });
+  const { skip, take } = pagination ?? {};
+
+  const [items, count] = await Promise.all([
+    prisma.project.findMany({ where, orderBy: { createdAt: 'asc' }, skip, take }),
+    prisma.project.count({ where }),
+  ]);
+
+  return { items, count };
 }
 
 async function getProjectById(user, id) {

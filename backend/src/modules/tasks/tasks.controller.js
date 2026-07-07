@@ -1,6 +1,6 @@
 const { z } = require('zod');
 const tasksService = require('./tasks.service');
-const { buildODataResponse } = require('../../utils/odata-response.util');
+const { buildPaginatedResponse } = require('../../utils/pagination-response.util');
 
 const TASK_STATUSES = ['TODO', 'IN_PROGRESS', 'TEST', 'DONE'];
 const TASK_LABELS = ['Development', 'QA', 'UI/UX', 'Planing', 'Other', 'Dev Ops'];
@@ -34,7 +34,8 @@ const updateTaskSchema = z
 async function list(req, res, next) {
   try {
     const { items, count } = await tasksService.listTasks(req.odataQuery);
-    res.status(200).json(buildODataResponse('/api/tasks', count, items));
+    const { page, limit } = req.odataQuery;
+    res.status(200).json(buildPaginatedResponse(items, { page, limit, totalItems: count }));
   } catch (err) {
     next(err);
   }
