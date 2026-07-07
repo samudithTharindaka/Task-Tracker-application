@@ -1,5 +1,6 @@
 import { apiClient } from '@/lib/api/client'
-import type { Pagination, Task, TaskLabel, TaskStatus } from '@/types/task'
+import { TaskListResponseSchema } from '@/lib/api/schemas'
+import { TaskSchema, type Pagination, type Task, type TaskLabel, type TaskStatus } from '@/types/task'
 
 export interface CreateTaskInput {
   title: string
@@ -20,10 +21,10 @@ export interface UpdateTaskInput {
 }
 
 export async function listTasksByProject(projectId: string): Promise<Task[]> {
-  const { data } = await apiClient.get<{ value: Task[] }>('/api/tasks', {
+  const { data } = await apiClient.get('/api/tasks', {
     params: { $filter: `projectId eq '${projectId}'`, limit: 100 },
   })
-  return data.value
+  return TaskListResponseSchema.parse(data).value
 }
 
 export interface ListTasksPageParams {
@@ -41,20 +42,21 @@ export async function listTasksPage(
   if (status) clauses.push(`status eq '${status}'`)
   if (label) clauses.push(`label eq '${label}'`)
 
-  const { data } = await apiClient.get<{ value: Task[]; pagination: Pagination }>('/api/tasks', {
+  const { data } = await apiClient.get('/api/tasks', {
     params: { $filter: clauses.join(' and '), page, limit },
   })
-  return { tasks: data.value, pagination: data.pagination }
+  const parsed = TaskListResponseSchema.parse(data)
+  return { tasks: parsed.value, pagination: parsed.pagination }
 }
 
 export async function createTask(input: CreateTaskInput): Promise<Task> {
-  const { data } = await apiClient.post<Task>('/api/tasks', input)
-  return data
+  const { data } = await apiClient.post('/api/tasks', input)
+  return TaskSchema.parse(data)
 }
 
 export async function updateTask(id: string, patch: UpdateTaskInput): Promise<Task> {
-  const { data } = await apiClient.put<Task>(`/api/tasks/${id}`, patch)
-  return data
+  const { data } = await apiClient.put(`/api/tasks/${id}`, patch)
+  return TaskSchema.parse(data)
 }
 
 export async function deleteTask(id: string): Promise<void> {
