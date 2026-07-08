@@ -7,23 +7,45 @@
   },
   "auth": {
     "type": "bearer",
-    "bearer": [{ "key": "token", "value": "{{accessToken}}", "type": "string" }]
+    "bearer": [
+      {
+        "key": "token",
+        "value": "{{accessToken}}",
+        "type": "string"
+      }
+    ]
   },
   "item": [
     {
       "name": "Auth",
-      "auth": { "type": "noauth" },
+      "auth": {
+        "type": "noauth"
+      },
       "item": [
         {
           "name": "Register",
           "request": {
             "method": "POST",
-            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
             "body": {
               "mode": "raw",
               "raw": "{\n  \"email\": \"{{$randomEmail}}\",\n  \"password\": \"Password123!\"\n}"
             },
-            "url": { "raw": "{{baseUrl}}/auth/register", "host": ["{{baseUrl}}"], "path": ["auth", "register"] },
+            "url": {
+              "raw": "{{baseUrl}}/auth/register",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "register"
+              ]
+            },
             "description": "Registers a new user. Always created with role USER. Uses a random email each run to avoid 409 conflicts."
           },
           "event": [
@@ -49,12 +71,26 @@
           "name": "Login as Alice (seeded user)",
           "request": {
             "method": "POST",
-            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
             "body": {
               "mode": "raw",
               "raw": "{\n  \"email\": \"{{userEmail}}\",\n  \"password\": \"{{userPassword}}\"\n}"
             },
-            "url": { "raw": "{{baseUrl}}/auth/login", "host": ["{{baseUrl}}"], "path": ["auth", "login"] },
+            "url": {
+              "raw": "{{baseUrl}}/auth/login",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "login"
+              ]
+            },
             "description": "Logs in as the seeded regular user and stores accessToken/refreshToken/userId in the environment for the Projects/Tasks folders to use."
           },
           "event": [
@@ -81,12 +117,26 @@
           "name": "Login as Admin (seeded user)",
           "request": {
             "method": "POST",
-            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
             "body": {
               "mode": "raw",
               "raw": "{\n  \"email\": \"{{adminEmail}}\",\n  \"password\": \"{{adminPassword}}\"\n}"
             },
-            "url": { "raw": "{{baseUrl}}/auth/login", "host": ["{{baseUrl}}"], "path": ["auth", "login"] },
+            "url": {
+              "raw": "{{baseUrl}}/auth/login",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "login"
+              ]
+            },
             "description": "Run instead of 'Login as Alice' to test admin-only cross-user visibility. Overwrites {{accessToken}} used by the Projects/Tasks folders, and also stores it separately in {{adminAccessToken}}."
           },
           "event": [
@@ -113,12 +163,26 @@
           "name": "Refresh Token",
           "request": {
             "method": "POST",
-            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
             "body": {
               "mode": "raw",
               "raw": "{\n  \"refreshToken\": \"{{refreshToken}}\"\n}"
             },
-            "url": { "raw": "{{baseUrl}}/auth/refresh", "host": ["{{baseUrl}}"], "path": ["auth", "refresh"] },
+            "url": {
+              "raw": "{{baseUrl}}/auth/refresh",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "refresh"
+              ]
+            },
             "description": "Exchanges the stored refresh token for a new access token."
           },
           "event": [
@@ -148,7 +212,15 @@
           "name": "List Projects",
           "request": {
             "method": "GET",
-            "url": { "raw": "{{baseUrl}}/projects", "host": ["{{baseUrl}}"], "path": ["projects"] },
+            "url": {
+              "raw": "{{baseUrl}}/projects",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "projects"
+              ]
+            },
             "description": "USER role only ever sees their own projects; ADMIN sees all."
           },
           "event": [
@@ -172,12 +244,25 @@
           "name": "Create Project",
           "request": {
             "method": "POST",
-            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
             "body": {
               "mode": "raw",
               "raw": "{\n  \"name\": \"My Board\"\n}"
             },
-            "url": { "raw": "{{baseUrl}}/projects", "host": ["{{baseUrl}}"], "path": ["projects"] },
+            "url": {
+              "raw": "{{baseUrl}}/projects",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "projects"
+              ]
+            },
             "description": "ownerId is always set server-side to the authenticated user. Stores the new project's id in {{projectId}} for the Tasks folder to use."
           },
           "event": [
@@ -202,7 +287,16 @@
           "name": "Get Project by Id",
           "request": {
             "method": "GET",
-            "url": { "raw": "{{baseUrl}}/projects/{{projectId}}", "host": ["{{baseUrl}}"], "path": ["projects", "{{projectId}}"] }
+            "url": {
+              "raw": "{{baseUrl}}/projects/{{projectId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "projects",
+                "{{projectId}}"
+              ]
+            }
           },
           "event": [
             {
@@ -225,12 +319,26 @@
           "name": "Update Project (Rename)",
           "request": {
             "method": "PUT",
-            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
             "body": {
               "mode": "raw",
               "raw": "{\n  \"name\": \"My Board (renamed)\"\n}"
             },
-            "url": { "raw": "{{baseUrl}}/projects/{{projectId}}", "host": ["{{baseUrl}}"], "path": ["projects", "{{projectId}}"] }
+            "url": {
+              "raw": "{{baseUrl}}/projects/{{projectId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "projects",
+                "{{projectId}}"
+              ]
+            }
           },
           "event": [
             {
@@ -259,13 +367,26 @@
           "request": {
             "method": "GET",
             "url": {
-              "raw": "{{baseUrl}}/tasks?$top=10&$skip=0&$orderby=dueDate desc",
-              "host": ["{{baseUrl}}"],
-              "path": ["tasks"],
+              "raw": "{{baseUrl}}/tasks?page=1&limit=10&$orderby=dueDate desc",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "tasks"
+              ],
               "query": [
-                { "key": "$top", "value": "10" },
-                { "key": "$skip", "value": "0" },
-                { "key": "$orderby", "value": "dueDate desc" }
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "limit",
+                  "value": "10"
+                },
+                {
+                  "key": "$orderby",
+                  "value": "dueDate desc"
+                }
               ]
             },
             "description": "USER role only ever sees their own tasks server-side, even if you add an ownerId filter below."
@@ -279,10 +400,11 @@
                   "pm.test('Status code is 200', function () {",
                   "  pm.response.to.have.status(200);",
                   "});",
-                  "pm.test('Response has OData envelope', function () {",
+                  "pm.test('Response has a paginated envelope', function () {",
                   "  const data = pm.response.json();",
-                  "  pm.expect(data).to.have.property('@odata.count');",
                   "  pm.expect(data.value).to.be.an('array');",
+                  "  pm.expect(data.pagination).to.have.property('totalItems');",
+                  "  pm.expect(data.pagination).to.have.property('totalPages');",
                   "});"
                 ]
               }
@@ -295,9 +417,18 @@
             "method": "GET",
             "url": {
               "raw": "{{baseUrl}}/tasks?$filter=status eq 'DONE'",
-              "host": ["{{baseUrl}}"],
-              "path": ["tasks"],
-              "query": [{ "key": "$filter", "value": "status eq 'DONE'" }]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "tasks"
+              ],
+              "query": [
+                {
+                  "key": "$filter",
+                  "value": "status eq 'DONE'"
+                }
+              ]
             },
             "description": "Valid status values: TODO, IN_PROGRESS, TEST, DONE."
           },
@@ -325,9 +456,18 @@
             "method": "GET",
             "url": {
               "raw": "{{baseUrl}}/tasks?$filter=projectId eq '{{projectId}}'",
-              "host": ["{{baseUrl}}"],
-              "path": ["tasks"],
-              "query": [{ "key": "$filter", "value": "projectId eq '{{projectId}}'" }]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "tasks"
+              ],
+              "query": [
+                {
+                  "key": "$filter",
+                  "value": "projectId eq '{{projectId}}'"
+                }
+              ]
             },
             "description": "Scopes the task list to a single project — this is how the frontend loads a board/list view."
           },
@@ -353,12 +493,25 @@
           "name": "Create Task",
           "request": {
             "method": "POST",
-            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
             "body": {
               "mode": "raw",
               "raw": "{\n  \"title\": \"Buy groceries\",\n  \"description\": \"Milk, eggs, bread\",\n  \"status\": \"TODO\",\n  \"dueDate\": \"2026-12-31T00:00:00.000Z\",\n  \"projectId\": \"{{projectId}}\"\n}"
             },
-            "url": { "raw": "{{baseUrl}}/tasks", "host": ["{{baseUrl}}"], "path": ["tasks"] },
+            "url": {
+              "raw": "{{baseUrl}}/tasks",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "tasks"
+              ]
+            },
             "description": "ownerId is always set server-side to the authenticated user, regardless of what you send in the body. projectId is required and must be a project you own (run Projects > Create Project first)."
           },
           "event": [
@@ -383,7 +536,16 @@
           "name": "Get Task by Id",
           "request": {
             "method": "GET",
-            "url": { "raw": "{{baseUrl}}/tasks/{{taskId}}", "host": ["{{baseUrl}}"], "path": ["tasks", "{{taskId}}"] }
+            "url": {
+              "raw": "{{baseUrl}}/tasks/{{taskId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "tasks",
+                "{{taskId}}"
+              ]
+            }
           },
           "event": [
             {
@@ -406,12 +568,26 @@
           "name": "Update Task",
           "request": {
             "method": "PUT",
-            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
             "body": {
               "mode": "raw",
               "raw": "{\n  \"status\": \"TEST\"\n}"
             },
-            "url": { "raw": "{{baseUrl}}/tasks/{{taskId}}", "host": ["{{baseUrl}}"], "path": ["tasks", "{{taskId}}"] },
+            "url": {
+              "raw": "{{baseUrl}}/tasks/{{taskId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "tasks",
+                "{{taskId}}"
+              ]
+            },
             "description": "Valid status values: TODO, IN_PROGRESS, TEST, DONE. A task can also be moved to a different project you own by sending projectId."
           },
           "event": [
@@ -435,7 +611,16 @@
           "name": "Delete Task",
           "request": {
             "method": "DELETE",
-            "url": { "raw": "{{baseUrl}}/tasks/{{taskId}}", "host": ["{{baseUrl}}"], "path": ["tasks", "{{taskId}}"] }
+            "url": {
+              "raw": "{{baseUrl}}/tasks/{{taskId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "tasks",
+                "{{taskId}}"
+              ]
+            }
           },
           "event": [
             {
@@ -454,19 +639,87 @@
       ]
     },
     {
+      "name": "AI",
+      "item": [
+        {
+          "name": "Chat",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/ai/chat",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "ai",
+                "chat"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"message\": \"What's due this week?\",\n  \"history\": []\n}"
+            },
+            "description": "Conversational assistant that can search/create/update the tasks and projects the caller has access to. Deletes always come back as a pendingDelete for the client to confirm via the existing DELETE /tasks/{id} — the assistant never deletes directly. Returns 503 if OPENAI_API_KEY is not configured on the server, or 502 if the AI provider itself errors (e.g. rate limited)."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 200, 502, or 503 (200 = success, 502 = AI provider errored e.g. rate limited, 503 = AI not configured on this server)', function () {",
+                  "  pm.expect([200, 502, 503]).to.include(pm.response.code);",
+                  "});",
+                  "if (pm.response.code === 200) {",
+                  "  pm.test('Response has the expected shape', function () {",
+                  "    const data = pm.response.json();",
+                  "    pm.expect(data).to.have.property('reply');",
+                  "    pm.expect(data).to.have.property('mutated');",
+                  "  });",
+                  "}"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
       "name": "Error Scenarios",
       "item": [
         {
           "name": "Register Duplicate Email (409)",
           "request": {
-            "auth": { "type": "noauth" },
+            "auth": {
+              "type": "noauth"
+            },
             "method": "POST",
-            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
             "body": {
               "mode": "raw",
               "raw": "{\n  \"email\": \"{{userEmail}}\",\n  \"password\": \"Password123!\"\n}"
             },
-            "url": { "raw": "{{baseUrl}}/auth/register", "host": ["{{baseUrl}}"], "path": ["auth", "register"] },
+            "url": {
+              "raw": "{{baseUrl}}/auth/register",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "register"
+              ]
+            },
             "description": "Reuses the seeded Alice email, which already exists, to demonstrate the 409 conflict response."
           },
           "event": [
@@ -486,9 +739,19 @@
         {
           "name": "List Tasks - No Token (401)",
           "request": {
-            "auth": { "type": "noauth" },
+            "auth": {
+              "type": "noauth"
+            },
             "method": "GET",
-            "url": { "raw": "{{baseUrl}}/tasks", "host": ["{{baseUrl}}"], "path": ["tasks"] }
+            "url": {
+              "raw": "{{baseUrl}}/tasks",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "tasks"
+              ]
+            }
           },
           "event": [
             {
@@ -510,8 +773,13 @@
             "method": "GET",
             "url": {
               "raw": "{{baseUrl}}/tasks/00000000-0000-0000-0000-000000000000",
-              "host": ["{{baseUrl}}"],
-              "path": ["tasks", "00000000-0000-0000-0000-000000000000"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "tasks",
+                "00000000-0000-0000-0000-000000000000"
+              ]
             }
           },
           "event": [
@@ -532,12 +800,25 @@
           "name": "Create Task - Unknown Project (404)",
           "request": {
             "method": "POST",
-            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
             "body": {
               "mode": "raw",
               "raw": "{\n  \"title\": \"Should fail\",\n  \"dueDate\": \"2026-12-31T00:00:00.000Z\",\n  \"projectId\": \"00000000-0000-0000-0000-000000000000\"\n}"
             },
-            "url": { "raw": "{{baseUrl}}/tasks", "host": ["{{baseUrl}}"], "path": ["tasks"] },
+            "url": {
+              "raw": "{{baseUrl}}/tasks",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "tasks"
+              ]
+            },
             "description": "Demonstrates that a task can't be filed under a project you don't own (or that doesn't exist)."
           },
           "event": [
@@ -558,12 +839,25 @@
           "name": "Create Task - Invalid Status (400)",
           "request": {
             "method": "POST",
-            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
             "body": {
               "mode": "raw",
               "raw": "{\n  \"title\": \"Should fail\",\n  \"status\": \"PENDING\",\n  \"dueDate\": \"2026-12-31T00:00:00.000Z\",\n  \"projectId\": \"{{projectId}}\"\n}"
             },
-            "url": { "raw": "{{baseUrl}}/tasks", "host": ["{{baseUrl}}"], "path": ["tasks"] },
+            "url": {
+              "raw": "{{baseUrl}}/tasks",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "tasks"
+              ]
+            },
             "description": "PENDING was removed from the TaskStatus enum (replaced by TODO); this now fails validation."
           },
           "event": [
@@ -589,7 +883,16 @@
           "name": "Delete Project",
           "request": {
             "method": "DELETE",
-            "url": { "raw": "{{baseUrl}}/projects/{{projectId}}", "host": ["{{baseUrl}}"], "path": ["projects", "{{projectId}}"] },
+            "url": {
+              "raw": "{{baseUrl}}/projects/{{projectId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "projects",
+                "{{projectId}}"
+              ]
+            },
             "description": "Cascades: deletes every task under this project too. Placed last (after Tasks and Error Scenarios) since both of those folders depend on {{projectId}}."
           },
           "event": [
@@ -611,9 +914,19 @@
     {
       "name": "Health Check",
       "request": {
-        "auth": { "type": "noauth" },
+        "auth": {
+          "type": "noauth"
+        },
         "method": "GET",
-        "url": { "raw": "{{serverUrl}}/health", "host": ["{{serverUrl}}"], "path": ["health"] }
+        "url": {
+          "raw": "{{serverUrl}}/health",
+          "host": [
+            "{{serverUrl}}"
+          ],
+          "path": [
+            "health"
+          ]
+        }
       },
       "event": [
         {
