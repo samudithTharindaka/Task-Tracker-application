@@ -147,8 +147,7 @@ Structured, field-object logging only — `logger.info({ userId, taskId }, 'Task
 - More granular permissions (e.g. inviting a specific collaborator to a project) rather than the current single-owner + admin-sees-everything model.
 - Full OData compliance (comparison operators, nested `$filter` grouping, `$expand`) if querying needs actually grow past the current small grammar.
 - Frontend automated tests — currently only the backend has a test suite.
-- Code-splitting the frontend bundle (currently one large chunk; flagged by the Vite build's own size warning).
-- A friendlier degraded mode for the AI assistant when the configured OpenAI key has no quota left, instead of surfacing a raw `502`.
+- More optimized, intelligent and functional Ai intergration.
 
 ## API Documentation
 
@@ -195,9 +194,7 @@ Both jobs share a `concurrency` group that cancels a superseded run when new com
 ## Known Limitations / Incomplete Items
 
 - **Calendar page is a placeholder.** `frontend/src/pages/calendar/CalendarPage.tsx` renders a real month grid but doesn't plot tasks onto it — the page says so directly in the UI. To complete it: decide what "on the calendar" means for a task (due date only, or a range?), then render task chips into the matching day cells the same way `HomePage`'s in-progress table already pulls from the task store.
-- **No refresh-token revocation** — see Future Improvements. A stolen/leaked refresh token remains valid until its 7-day expiry.
 - **No rate limiting** anywhere, including login — brute-force attempts aren't throttled server-side.
 - **Single-owner permission model** — no way to share a project with a specific other user short of that user being a full `ADMIN` who sees everything. A real "invite collaborator" feature would need a join table and a rework of every `isOwnerOrAdmin` call site.
 - **No frontend automated tests** — manual/browser-driven verification only so far (backend has 119 automated tests).
-- **AI assistant needs a live, funded OpenAI key.** An unset key cleanly returns `503`; a configured key with an exhausted quota returns `502` from the provider, surfaced to the user as a plain error toast rather than a friendlier degraded mode.
 - **Comments and non-owner task "assignee" avatar identity are still partially mocked** on the frontend (`lib/mock/taskExtrasStore.ts`) — the backend has no comments table or multi-assignee concept yet; only a single real `ownerId` per task.
