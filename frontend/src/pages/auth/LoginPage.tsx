@@ -6,8 +6,19 @@ import { Input } from '@/components/ui/input'
 import { Logo } from '@/components/Logo'
 import { loginRequest } from '@/lib/api/auth'
 import { getApiErrorMessage } from '@/lib/api/client'
-import { notifyError, notifySuccess } from '@/lib/toast'
+import { dismissToast, notifyError, notifyLoading, notifySuccess } from '@/lib/toast'
 import { useAuthStore } from '@/store/authStore'
+// Backends on free/cold-start-prone hosting can take a while to wake up —
+// if login hasn't resolved by this point, tell the user why rather than
+// leaving them staring at a spinner with no explanation.
+const SLOW_LOGIN_NOTICE_DELAY_MS = 2000
+
+// Seeded by backend/prisma/seed.js — real accounts, safe to publish here
+// since this is a demo app.
+const DEMO_ACCOUNTS = [
+  { label: 'User', email: 'alice@example.com', password: 'Password123!' },
+  { label: 'Admin', email: 'admin@example.com', password: 'Password123!' },
+]
 
 export function LoginPage() {
   const navigate = useNavigate()
@@ -19,6 +30,15 @@ export function LoginPage() {
   async function handleSubmit(e: FormEvent) {
     e.preventDefault()
     setIsSubmitting(true)
+
+    let slowLoginToastId: string | number | null = null
+    const slowLoginTimer = setTimeout(() => {
+      slowLoginToastId = notifyLoading(
+        'Please wait a bit…',
+        "The server is spinning up, that's why it's taking some time.",
+      )
+    }, SLOW_LOGIN_NOTICE_DELAY_MS)
+
     try {
       const session = await loginRequest(email, password)
       setSession(session)
@@ -27,6 +47,8 @@ export function LoginPage() {
     } catch (error) {
       notifyError('Login failed', getApiErrorMessage(error, 'Invalid email or password'))
     } finally {
+      clearTimeout(slowLoginTimer)
+      if (slowLoginToastId !== null) dismissToast(slowLoginToastId)
       setIsSubmitting(false)
     }
   }
@@ -80,6 +102,30 @@ export function LoginPage() {
             Sign up
           </Link>
         </p>
+
+        <div className="mt-6 w-full rounded-xl border border-white/20 bg-white/10 p-3 backdrop-blur-sm">
+          <p className="mb-2 text-center text-[11px] font-semibold tracking-wide text-white/70 uppercase">
+            Demo credentials. click to fill
+          </p>
+          <div className="flex flex-col gap-1.5">
+            {DEMO_ACCOUNTS.map((account) => (
+              <button
+                key={account.label}
+                type="button"
+                onClick={() => {
+                  setEmail(account.email)
+                  setPassword(account.password)
+                }}
+                className="flex items-center justify-between rounded-lg bg-white/10 px-3 py-2 text-left transition-colors hover:bg-white/20"
+              >
+                <span className="text-xs font-semibold text-white">{account.label}</span>
+                <span className="text-[11px] text-white/70">
+                  {account.email} · {account.password}
+                </span>
+              </button>
+            ))}
+          </div>
+        </div>
       </div>
     </div>
   )

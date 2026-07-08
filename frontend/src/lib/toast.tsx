@@ -1,5 +1,5 @@
 import { toast } from 'sonner'
-import { CircleAlertIcon, CircleCheckIcon, CircleXIcon } from 'lucide-react'
+import { CircleAlertIcon, CircleCheckIcon, CircleXIcon, Loader2Icon } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
 
@@ -46,6 +46,33 @@ export function notifyError(title: string, description?: string) {
     (id) => <ToastCard variant="error" title={title} description={description} onClose={() => toast.dismiss(id)} />,
     { duration: 4500 },
   )
+}
+
+// For a request that's expected to usually be fast but can occasionally
+// stall (e.g. a free-tier backend cold-starting) — caller holds onto the
+// returned id and calls dismissToast(id) once the request settles, since
+// this one has no fixed duration.
+export function notifyLoading(title: string, description?: string): string | number {
+  return toast.custom(
+    () => (
+      <div className="flex w-full overflow-hidden rounded-xl border bg-card shadow-lg">
+        <div className="flex w-16 shrink-0 items-center justify-center bg-primary">
+          <Loader2Icon className="size-7 animate-spin text-white" />
+        </div>
+        <div className="flex flex-1 items-center px-4 py-3">
+          <div>
+            <p className="font-semibold text-foreground">{title}</p>
+            {description && <p className="text-sm text-muted-foreground">{description}</p>}
+          </div>
+        </div>
+      </div>
+    ),
+    { duration: Infinity },
+  )
+}
+
+export function dismissToast(id: string | number) {
+  toast.dismiss(id)
 }
 
 // Toast-based confirm/decline prompt for destructive actions, replacing
