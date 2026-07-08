@@ -2,7 +2,7 @@
   "info": {
     "_postman_id": "6eb03ca2-2c05-4b9d-bd82-ca275b0d0d7d",
     "name": "Task Tracker API",
-    "description": "REST API for the Task Tracker application. Import the companion 'Task Tracker - Local' environment before running.\n\nRun the folders top to bottom (Collection Runner respects this order): Auth > Projects > Tasks > Error Scenarios > Cleanup > Health Check. Projects > Create Project stores {{projectId}}, which Tasks and Error Scenarios both depend on — Cleanup > Delete Project is deliberately last since it cascades and deletes that project's tasks too. Switch to Auth > Login as Admin to test cross-user visibility.",
+    "description": "REST API for the Task Tracker application. Import the companion 'Task Tracker - Local' environment before running.\n\nRun the folders top to bottom (Collection Runner respects this order): Auth > Projects > Tasks > AI > Validation Errors (Zod) > Error Scenarios > Cleanup > Health Check. Projects > Create Project stores {{projectId}}, which Tasks and Error Scenarios both depend on — Cleanup > Delete Project is deliberately last since it cascades and deletes that project's tasks too. Switch to Auth > Login as Admin to test cross-user visibility.",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "auth": {
@@ -691,6 +691,602 @@
       ]
     },
     {
+      "name": "Validation Errors (Zod)",
+      "item": [
+        {
+          "name": "Register - Invalid Email Format (400)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/auth/register",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "register"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"not-an-email\",\n  \"password\": \"Password123!\"\n}"
+            },
+            "description": "email must pass Zod's z.string().email() check.",
+            "auth": {
+              "type": "noauth"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 400', function () {",
+                  "  pm.response.to.have.status(400);",
+                  "});",
+                  "pm.test('Response is a Zod validation error', function () {",
+                  "  const data = pm.response.json();",
+                  "  pm.expect(data.error.code).to.eql('VALIDATION_ERROR');",
+                  "  pm.expect(data.error.details).to.be.an('array').that.is.not.empty;",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Register - Password Too Short (400)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/auth/register",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "register"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{$randomEmail}}\",\n  \"password\": \"short1\"\n}"
+            },
+            "description": "password must be at least 8 characters.",
+            "auth": {
+              "type": "noauth"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 400', function () {",
+                  "  pm.response.to.have.status(400);",
+                  "});",
+                  "pm.test('Response is a Zod validation error', function () {",
+                  "  const data = pm.response.json();",
+                  "  pm.expect(data.error.code).to.eql('VALIDATION_ERROR');",
+                  "  pm.expect(data.error.details).to.be.an('array').that.is.not.empty;",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Login - Missing Password (400)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/auth/login",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "login"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{userEmail}}\"\n}"
+            },
+            "description": "password is a required field.",
+            "auth": {
+              "type": "noauth"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 400', function () {",
+                  "  pm.response.to.have.status(400);",
+                  "});",
+                  "pm.test('Response is a Zod validation error', function () {",
+                  "  const data = pm.response.json();",
+                  "  pm.expect(data.error.code).to.eql('VALIDATION_ERROR');",
+                  "  pm.expect(data.error.details).to.be.an('array').that.is.not.empty;",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Refresh - Missing Token (400)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/auth/refresh",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "refresh"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{}"
+            },
+            "description": "refreshToken is a required field.",
+            "auth": {
+              "type": "noauth"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 400', function () {",
+                  "  pm.response.to.have.status(400);",
+                  "});",
+                  "pm.test('Response is a Zod validation error', function () {",
+                  "  const data = pm.response.json();",
+                  "  pm.expect(data.error.code).to.eql('VALIDATION_ERROR');",
+                  "  pm.expect(data.error.details).to.be.an('array').that.is.not.empty;",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Create Project - Empty Name (400)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/projects",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "projects"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"\"\n}"
+            },
+            "description": "name must be a non-empty string (min length 1)."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 400', function () {",
+                  "  pm.response.to.have.status(400);",
+                  "});",
+                  "pm.test('Response is a Zod validation error', function () {",
+                  "  const data = pm.response.json();",
+                  "  pm.expect(data.error.code).to.eql('VALIDATION_ERROR');",
+                  "  pm.expect(data.error.details).to.be.an('array').that.is.not.empty;",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Create Task - Missing Title (400)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/tasks",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "tasks"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"dueDate\": \"2026-12-31T00:00:00.000Z\",\n  \"projectId\": \"{{projectId}}\"\n}"
+            },
+            "description": "title is a required field."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 400', function () {",
+                  "  pm.response.to.have.status(400);",
+                  "});",
+                  "pm.test('Response is a Zod validation error', function () {",
+                  "  const data = pm.response.json();",
+                  "  pm.expect(data.error.code).to.eql('VALIDATION_ERROR');",
+                  "  pm.expect(data.error.details).to.be.an('array').that.is.not.empty;",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Create Task - Missing Due Date (400)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/tasks",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "tasks"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Should fail\",\n  \"projectId\": \"{{projectId}}\"\n}"
+            },
+            "description": "dueDate is a required field."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 400', function () {",
+                  "  pm.response.to.have.status(400);",
+                  "});",
+                  "pm.test('Response is a Zod validation error', function () {",
+                  "  const data = pm.response.json();",
+                  "  pm.expect(data.error.code).to.eql('VALIDATION_ERROR');",
+                  "  pm.expect(data.error.details).to.be.an('array').that.is.not.empty;",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Create Task - Invalid Status (400)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/tasks",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "tasks"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Should fail\",\n  \"status\": \"PENDING\",\n  \"dueDate\": \"2026-12-31T00:00:00.000Z\",\n  \"projectId\": \"{{projectId}}\"\n}"
+            },
+            "description": "PENDING is not a member of the TaskStatus enum (TODO, IN_PROGRESS, TEST, DONE)."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 400', function () {",
+                  "  pm.response.to.have.status(400);",
+                  "});",
+                  "pm.test('Response is a Zod validation error', function () {",
+                  "  const data = pm.response.json();",
+                  "  pm.expect(data.error.code).to.eql('VALIDATION_ERROR');",
+                  "  pm.expect(data.error.details).to.be.an('array').that.is.not.empty;",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Create Task - Invalid Label (400)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/tasks",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "tasks"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Should fail\",\n  \"label\": \"Not A Real Label\",\n  \"dueDate\": \"2026-12-31T00:00:00.000Z\",\n  \"projectId\": \"{{projectId}}\"\n}"
+            },
+            "description": "label must be one of Development, QA, UI/UX, Planing, Other, Dev Ops."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 400', function () {",
+                  "  pm.response.to.have.status(400);",
+                  "});",
+                  "pm.test('Response is a Zod validation error', function () {",
+                  "  const data = pm.response.json();",
+                  "  pm.expect(data.error.code).to.eql('VALIDATION_ERROR');",
+                  "  pm.expect(data.error.details).to.be.an('array').that.is.not.empty;",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Create Task - Invalid Project Id Format (400)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/tasks",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "tasks"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Should fail\",\n  \"dueDate\": \"2026-12-31T00:00:00.000Z\",\n  \"projectId\": \"not-a-uuid\"\n}"
+            },
+            "description": "projectId must be a well-formed UUID (checked before any database lookup, so this is a 400, not a 404)."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 400', function () {",
+                  "  pm.response.to.have.status(400);",
+                  "});",
+                  "pm.test('Response is a Zod validation error', function () {",
+                  "  const data = pm.response.json();",
+                  "  pm.expect(data.error.code).to.eql('VALIDATION_ERROR');",
+                  "  pm.expect(data.error.details).to.be.an('array').that.is.not.empty;",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Update Task - Empty Body (400)",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/tasks/{{taskId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "tasks",
+                "{{taskId}}"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{}"
+            },
+            "description": "The update schema requires at least one field to be present."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 400', function () {",
+                  "  pm.response.to.have.status(400);",
+                  "});",
+                  "pm.test('Response is a Zod validation error', function () {",
+                  "  const data = pm.response.json();",
+                  "  pm.expect(data.error.code).to.eql('VALIDATION_ERROR');",
+                  "  pm.expect(data.error.details).to.be.an('array').that.is.not.empty;",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "AI Chat - Empty Message (400)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/ai/chat",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "ai",
+                "chat"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"message\": \"\"\n}"
+            },
+            "description": "message must be a non-empty string."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 400', function () {",
+                  "  pm.response.to.have.status(400);",
+                  "});",
+                  "pm.test('Response is a Zod validation error', function () {",
+                  "  const data = pm.response.json();",
+                  "  pm.expect(data.error.code).to.eql('VALIDATION_ERROR');",
+                  "  pm.expect(data.error.details).to.be.an('array').that.is.not.empty;",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "AI Chat - History Exceeds Max Items (400)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/ai/chat",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "ai",
+                "chat"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"message\": \"test\",\n  \"history\": [\n    {\n      \"role\": \"user\",\n      \"content\": \"Message 0\"\n    },\n    {\n      \"role\": \"assistant\",\n      \"content\": \"Message 1\"\n    },\n    {\n      \"role\": \"user\",\n      \"content\": \"Message 2\"\n    },\n    {\n      \"role\": \"assistant\",\n      \"content\": \"Message 3\"\n    },\n    {\n      \"role\": \"user\",\n      \"content\": \"Message 4\"\n    },\n    {\n      \"role\": \"assistant\",\n      \"content\": \"Message 5\"\n    },\n    {\n      \"role\": \"user\",\n      \"content\": \"Message 6\"\n    },\n    {\n      \"role\": \"assistant\",\n      \"content\": \"Message 7\"\n    },\n    {\n      \"role\": \"user\",\n      \"content\": \"Message 8\"\n    },\n    {\n      \"role\": \"assistant\",\n      \"content\": \"Message 9\"\n    },\n    {\n      \"role\": \"user\",\n      \"content\": \"Message 10\"\n    },\n    {\n      \"role\": \"assistant\",\n      \"content\": \"Message 11\"\n    },\n    {\n      \"role\": \"user\",\n      \"content\": \"Message 12\"\n    },\n    {\n      \"role\": \"assistant\",\n      \"content\": \"Message 13\"\n    },\n    {\n      \"role\": \"user\",\n      \"content\": \"Message 14\"\n    },\n    {\n      \"role\": \"assistant\",\n      \"content\": \"Message 15\"\n    },\n    {\n      \"role\": \"user\",\n      \"content\": \"Message 16\"\n    },\n    {\n      \"role\": \"assistant\",\n      \"content\": \"Message 17\"\n    },\n    {\n      \"role\": \"user\",\n      \"content\": \"Message 18\"\n    },\n    {\n      \"role\": \"assistant\",\n      \"content\": \"Message 19\"\n    },\n    {\n      \"role\": \"user\",\n      \"content\": \"Message 20\"\n    }\n  ]\n}"
+            },
+            "description": "history accepts at most 20 entries; this sends 21."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 400', function () {",
+                  "  pm.response.to.have.status(400);",
+                  "});",
+                  "pm.test('Response is a Zod validation error', function () {",
+                  "  const data = pm.response.json();",
+                  "  pm.expect(data.error.code).to.eql('VALIDATION_ERROR');",
+                  "  pm.expect(data.error.details).to.be.an('array').that.is.not.empty;",
+                  "});"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
       "name": "Error Scenarios",
       "item": [
         {
@@ -829,45 +1425,6 @@
                 "exec": [
                   "pm.test('Status code is 404', function () {",
                   "  pm.response.to.have.status(404);",
-                  "});"
-                ]
-              }
-            }
-          ]
-        },
-        {
-          "name": "Create Task - Invalid Status (400)",
-          "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"title\": \"Should fail\",\n  \"status\": \"PENDING\",\n  \"dueDate\": \"2026-12-31T00:00:00.000Z\",\n  \"projectId\": \"{{projectId}}\"\n}"
-            },
-            "url": {
-              "raw": "{{baseUrl}}/tasks",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "tasks"
-              ]
-            },
-            "description": "PENDING was removed from the TaskStatus enum (replaced by TODO); this now fails validation."
-          },
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "type": "text/javascript",
-                "exec": [
-                  "pm.test('Status code is 400', function () {",
-                  "  pm.response.to.have.status(400);",
                   "});"
                 ]
               }
