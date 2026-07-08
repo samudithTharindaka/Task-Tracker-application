@@ -20,7 +20,7 @@
 
 ## Overview
 
-Newnop is a full-stack task management app: a drag-and-drop Kanban board, a filterable/paginated list view, a project-scoped dashboard with charts, and an OpenAI-backed AI assistant that can search and manage tasks in natural language — all with real-time updates over Socket.IO and role-based access control (regular users only ever see and manage their own tasks/projects; admins see and manage everyone's). The backend is an Express/Prisma/PostgreSQL REST API; the frontend is a React/TypeScript SPA.
+Newnop Task manager is a full-stack task management app: a drag-and-drop Kanban board, a filterable/paginated list view, a project-scoped dashboard with charts, and an OpenAI-backed AI assistant that can search and manage tasks in natural language — all with real-time updates over Socket.IO and role-based access control (regular users only ever see and manage their own tasks/projects; admins see and manage everyone's). The backend is an Express/Prisma/PostgreSQL REST API; the frontend is a React/TypeScript SPA.
 
 ## Setup Instructions
 
