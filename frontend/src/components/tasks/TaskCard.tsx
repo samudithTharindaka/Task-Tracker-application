@@ -23,7 +23,11 @@ export function TaskCard({
   const currentUser = useAuthStore((s) => s.user)
 
   const style = transform
-    ? { transform: `translate3d(${transform.x}px, ${transform.y}px, 0)` }
+    ? {
+        transform: isDragging
+          ? `translate3d(${transform.x}px, ${transform.y}px, 0) rotate(3deg) scale(1.03)`
+          : `translate3d(${transform.x}px, ${transform.y}px, 0)`,
+      }
     : undefined
 
   const ownerName = ownerDisplayName(task, currentUser)
@@ -36,8 +40,8 @@ export function TaskCard({
       {...attributes}
       onClick={onClick}
       className={cn(
-        'cursor-pointer rounded-xl border bg-card p-4 shadow-xs transition-shadow hover:shadow-md',
-        isDragging && 'z-10 opacity-70 shadow-lg',
+        'cursor-grab rounded-xl border bg-card p-4 shadow-xs transition-shadow hover:shadow-md active:cursor-grabbing',
+        isDragging && 'z-10 shadow-2xl',
       )}
     >
       <h3 className="text-sm font-semibold">{task.title}</h3>

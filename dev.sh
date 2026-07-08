@@ -2,9 +2,16 @@
 # One-click local dev: Postgres (docker), backend, and frontend together.
 # Ctrl+C stops backend + frontend; Postgres keeps running (fast restarts,
 # no re-provisioning). Stop it yourself with `docker compose down` when done.
+#
+# Backend and frontend output is piped into logs/backend.log and
+# logs/frontend.log. Tail them live in separate terminals with:
+#   tail -f logs/backend.log
+#   tail -f logs/frontend.log
 set -e
 
 cd "$(dirname "$0")"
+
+mkdir -p logs
 
 # On Windows/Git Bash, npm wraps its child process in a way that can escape
 # plain job-control signals, so a crashed terminal or a previous run that
@@ -22,7 +29,7 @@ free_dev_ports() {
 }
 
 echo "Starting Postgres..."
-docker compose up -d postgres
+docker compose up -d postgres || { echo "Failed to start Postgres"; exit 1; }
 
 echo "Freeing ports 4000/5173 from any leftover process..."
 free_dev_ports
@@ -37,10 +44,19 @@ cleanup() {
 }
 trap cleanup EXIT INT TERM
 
-echo "Starting backend..."
-(cd backend && npm run dev) &
+echo "Starting backend (logs: logs/backend.log)..."
+(cd backend && npm run dev > ../logs/backend.log 2>&1) &
 
-echo "Starting frontend..."
-(cd frontend && npm run dev) &
+echo "Starting frontend (logs: logs/frontend.log)..."
+(cd frontend && npm run dev > ../logs/frontend.log 2>&1) &
+
+echo ""
+echo "Backend and frontend running in background."
+echo "Tail logs live in separate terminals with:"
+echo "  tail -f logs/backend.log"
+echo "  tail -f logs/frontend.log"
+echo ""
+echo "Press Ctrl+C here to stop backend and frontend (Postgres keeps running)."
+echo ""
 
 wait
