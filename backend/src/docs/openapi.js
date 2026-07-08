@@ -45,6 +45,11 @@ const openapiSpec = {
             properties: {
               message: { type: 'string', example: 'Invalid email or password' },
               code: { type: 'string', example: 'UNAUTHENTICATED' },
+              details: {
+                type: 'array',
+                description: 'Present only on 400 VALIDATION_ERROR responses — the raw Zod issues array',
+                items: { type: 'object' },
+              },
             },
           },
         },
@@ -304,9 +309,12 @@ const openapiSpec = {
           {
             name: '$filter',
             in: 'query',
-            description: "Supports 'eq' on status and ownerId, combinable with 'and'.",
+            description:
+              "Supports 'eq' on status, ownerId, projectId, and label, combinable with 'and'. " +
+              "status must be one of TODO/IN_PROGRESS/TEST/DONE; label must be one of " +
+              "Development/QA/UI/UX/Planing/Other/Dev Ops.",
             schema: { type: 'string' },
-            example: "status eq 'DONE' and ownerId eq 'b0138fe3-ebe5-49eb-a031-06295238f3f3'",
+            example: "status eq 'DONE' and label eq 'QA'",
           },
           {
             name: 'page',
@@ -323,7 +331,9 @@ const openapiSpec = {
           {
             name: '$orderby',
             in: 'query',
-            description: 'Field + direction, e.g. "dueDate desc"',
+            description:
+              'Field + direction (default direction asc), e.g. "dueDate desc". Comma-separate for ' +
+              'multiple sort keys. Sortable fields: title, status, dueDate, createdAt, updatedAt, ownerId.',
             schema: { type: 'string' },
             example: 'dueDate desc',
           },
@@ -340,6 +350,7 @@ const openapiSpec = {
       post: {
         tags: ['Tasks'],
         summary: 'Create a task (ownerId is always the authenticated user)',
+        description: 'projectId must reference a project the caller owns (or, for ADMIN, any project).',
         security: [{ bearerAuth: [] }],
         requestBody: {
           required: true,
@@ -352,6 +363,8 @@ const openapiSpec = {
           },
           400: errorResponse('Validation error'),
           401: errorResponse('Missing or invalid access token'),
+          403: errorResponse('projectId belongs to a project the caller does not own'),
+          404: errorResponse('projectId does not reference an existing project'),
         },
       },
     },
@@ -376,6 +389,8 @@ const openapiSpec = {
       put: {
         tags: ['Tasks'],
         summary: 'Update a task (owner or admin only)',
+        description:
+          'If projectId is included, it must reference a project the caller owns (or, for ADMIN, any project).',
         security: [{ bearerAuth: [] }],
         requestBody: {
           required: true,
@@ -463,6 +478,36 @@ const openapiSpec = {
             description: 'Project found',
             content: { 'application/json': { schema: { $ref: '#/components/schemas/Project' } } },
           },
+          401: errorResponse('Missing or invalid access token'),
+          403: errorResponse('Not the owner and not an admin'),
+          404: errorResponse('Project not found'),
+        },
+      },
+      put: {
+        tags: ['Projects'],
+        summary: 'Rename a project (owner or admin only)',
+        security: [{ bearerAuth: [] }],
+        requestBody: {
+          required: true,
+          content: { 'application/json': { schema: { $ref: '#/components/schemas/ProjectCreateRequest' } } },
+        },
+        responses: {
+          200: {
+            description: 'Project updated',
+            content: { 'application/json': { schema: { $ref: '#/components/schemas/Project' } } },
+          },
+          400: errorResponse('Validation error'),
+          401: errorResponse('Missing or invalid access token'),
+          403: errorResponse('Not the owner and not an admin'),
+          404: errorResponse('Project not found'),
+        },
+      },
+      delete: {
+        tags: ['Projects'],
+        summary: 'Delete a project (owner or admin only) — cascades to that project\'s tasks',
+        security: [{ bearerAuth: [] }],
+        responses: {
+          204: { description: 'Project (and its tasks) deleted' },
           401: errorResponse('Missing or invalid access token'),
           403: errorResponse('Not the owner and not an admin'),
           404: errorResponse('Project not found'),

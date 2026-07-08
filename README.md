@@ -154,10 +154,10 @@ Structured, field-object logging only — `logger.info({ userId, taskId }, 'Task
 
 Postman collection + environment live in `backend/postman/`:
 
-- **`TaskTracker.postman_collection.json`** — every endpoint (Auth, Tasks, Projects, AI Chat), an Error Scenarios folder (400/403/404), and a Cleanup folder.
+- **`TaskTracker.postman_collection.json`** — every endpoint (Auth, Tasks, Projects including rename/delete, AI Chat), a dedicated **Validation Errors (Zod)** folder exercising every Zod schema in the app (register/login/refresh, project create, task create/update, AI chat) and asserting the exact `{error: {code: 'VALIDATION_ERROR', details: [...]}}` shape `error.middleware.js` returns, an Error Scenarios folder for non-validation errors (401/404/409), and a Cleanup folder.
 - **`TaskTracker.postman_environment.json`** — `baseUrl`, seeded demo credentials, and token/id variables the collection's test scripts populate automatically as you run it.
 
-Import both into Postman, select the environment, and run the collection top-to-bottom (Register → Login populate the tokens every later request needs). Verified end-to-end via `newman` — 23/23 requests, 32/32 assertions passing.
+Import both into Postman, select the environment, and run the collection top-to-bottom (Register → Login populate the tokens every later request needs). Verified end-to-end via `newman` — 35/35 requests, 57/57 assertions passing.
 
 The backend also serves live OpenAPI/Swagger docs whenever it's running: `/api-docs` (UI) and `/api-docs.json` (raw spec) — e.g. https://task-tracker-application-a9i4.onrender.com/api-docs.
 
