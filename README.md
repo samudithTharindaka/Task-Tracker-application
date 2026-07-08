@@ -27,25 +27,43 @@ Newnop Task manager is a full-stack task management app: a drag-and-drop Kanban 
 
 https://github.com/user-attachments/assets/9252256b-8391-4143-834c-52eb530348f1
 
+
+
 #### Ai Assistant
+
+
+https://github.com/user-attachments/assets/8d8a713c-d527-48ec-8263-32af7a14b007
+
 
 
 #### Real-Time Updates (Socket.IO)
 
 https://github.com/user-attachments/assets/f0a72a0e-1d8f-4c90-a324-d22f74736da2
 
+
+
 #### Zod Validation (backend + frontend)
 
 https://github.com/user-attachments/assets/995bad84-c207-48fe-9dc1-c9e34a1e4d08
+
+
 
 #### CI Pipeline (GitHub Actions)
 
 https://github.com/user-attachments/assets/f3f6a81b-db93-47a0-b8a0-a6006f87b1f3
 
+
+
 #### Docker (one-command setup) 
+
+https://github.com/user-attachments/assets/7fbd3c54-c627-443a-9819-77711b45719f
+
 
 
 #### Logging (Pino)
+
+https://github.com/user-attachments/assets/3f35cce4-692d-4f6b-9ee9-4a1fb043cf35
+
 
 
 
